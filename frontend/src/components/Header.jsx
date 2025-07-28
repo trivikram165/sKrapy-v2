@@ -5,7 +5,7 @@ const Header = () => {
     <header className="bg-[#E5E1DC] py-4 px-6 flex items-center justify-between sticky top-0 z-40 backdrop-blur-sm bg-opacity-95 transition-all duration-300">
       {/* Logo */}
       <div className="flex items-center space-x-6">
-        <img src="logo/logo1.svg" alt="Logo" className="w-21 h-16" />
+        <img src="logo/logo1.svg" alt="sKrapy logo" className="w-21 h-16" />
        
       </div>
 
