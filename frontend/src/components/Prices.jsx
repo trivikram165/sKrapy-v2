@@ -111,7 +111,7 @@ const PaperShredding = () => {
         }}
       >
         <img
-          src='/printer.png'
+          src='prices/printer.png'
           alt='Paper Shredder'
           className='w-full h-full object-contain rounded-xl'
         />
@@ -152,7 +152,7 @@ const VehicleScrapping = () => {
           filter: "drop-shadow(0 10px 25px rgba(0,0,0,0.5))",
         }}
       >
-        <img src="/rim.png" alt="Car Wheel" className="w-full h-full object-contain rounded-full" />
+        <img src="prices/rim.png" alt="Car Wheel" className="w-full h-full object-contain rounded-full" />
       </div>
     </div>
   );
@@ -189,7 +189,7 @@ const ScrapCollection = () => {
           filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.2))",
         }}
       >
-        <img src="/wires.png" alt="Metal Coils" className="w-full h-full object-contain rounded-lg" />
+        <img src="prices/wires.png" alt="Metal Coils" className="w-full h-full object-contain rounded-lg" />
       </div>
     </div>
   );
@@ -235,7 +235,7 @@ const ElectronicWaste = () => {
         }}
       >
         <img
-          src='/circuit.png'
+          src='prices/circuit.png'
           alt='Circuit Board'
           className='w-full h-full object-contain rounded-lg'
         />
