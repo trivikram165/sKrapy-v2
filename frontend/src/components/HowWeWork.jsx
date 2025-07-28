@@ -111,7 +111,7 @@ const Header = () => {
         How sKrapy Works
       </h1>
       <p className='text-gray-500 text-lg font-geist'>
-        Simple 6 step to turn your scrap into cash
+        Simple 6 steps to turn your scrap into cash
       </p>
     </div>
   );
