@@ -93,7 +93,7 @@ const WhyChooseFeatures = () => {
                         />
                     </div>
                     <p className="text-black text-2xl font-semibold mb-5"> Blockchain Integration </p>
-                    <p className="text-gray-500 text-base font-medium mb-5"> Earn tokens or cashback every time you recycle. It pays to be sustainable! </p>
+                    <p className="text-gray-500 text-base font-medium mb-5"> Leverage blockchain for secure, transparent, and traceable transactions in your recycling journey. </p>
                 </div>
 
             </div>
