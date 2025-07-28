@@ -101,7 +101,6 @@ const PaperShredding = () => {
         </p>
       </div>
 
-      {/* Paper Shredding Image */}
       <div
         ref={parallaxRef}
         className='absolute right-6 bottom-6 w-72 h-72 top-1/2'
@@ -143,7 +142,6 @@ const VehicleScrapping = () => {
         </h2>
       </div>
 
-      {/* Vehicle Wheel Image */}
       <div
         ref={parallaxRef}
         className='absolute left-1/2 top-32 w-72 h-72'
@@ -180,7 +178,6 @@ const ScrapCollection = () => {
         </h2>
       </div>
 
-      {/* Metal Coils/Wires Image */}
       <div
         ref={parallaxRef}
         className='absolute left-1/2 top-3/4 w-96 h-96'
@@ -225,7 +222,6 @@ const ElectronicWaste = () => {
         </div>
       </div>
 
-      {/* Circuit Board Image */}
       <div
         ref={parallaxRef}
         className='absolute right-6 w-108 h-108 bottom-0'
@@ -247,28 +243,23 @@ const ElectronicWaste = () => {
 // Main Page Component
 const ScrapPricingPage = () => {
   return (
-    <div className='min-h-screen bg-gray-50 py-16 px-4'>
+    <div className='min-h-screen bg-[#F5F3F0] py-16 px-4'>
       <div className='max-w-6xl mx-auto'>
         <Header />
 
-        {/* Grid layout matching the original image */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-          {/* Paper Shredding - spans 2 columns */}
           <div className='lg:col-span-2'>
             <PaperShredding />
           </div>
 
-          {/* Vehicle Scrapping - spans 1 column */}
           <div className='lg:col-span-1'>
             <VehicleScrapping />
           </div>
 
-          {/* Scrap Collection - spans 1 column */}
           <div className='lg:col-span-1'>
             <ScrapCollection />
           </div>
 
-          {/* Electronic Waste - spans 2 columns */}
           <div className='lg:col-span-2'>
             <ElectronicWaste />
           </div>
