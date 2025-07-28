@@ -8,7 +8,7 @@ const Footer = () => {
         
         {/* Left Section - Logo and Tagline */}
         <div className="flex items-start gap-4">
-          <img src="logo/logo2.svg" alt="Logo" className="w-12 h-12" />
+          <img src="logo/logo2.svg" alt="sKrapy logo" className="w-12 h-12" />
           <p className="max-w-xs text-md">
             Revolutionizing India’s scrap collection ecosystem for a cleaner, greener future.
           </p>
