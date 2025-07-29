@@ -3,7 +3,35 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParallaxScroll, useLoadAnimation } from "./Prices";
 
+
 const Header = () => {
+    
+    const [parallaxRef, scrollY] = useParallaxScroll(0.3);
+    const [loadRef, isVisible] = useLoadAnimation();
+
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    };
+
+    const phrase = ["Why", "Choose", "sKrapy?"];
+    const [visibleWords, setVisibleWords] = useState([]);
+    const [showSubtext, setShowSubtext] = useState(false);
+
+    useEffect(() => {
+        if (!isVisible) return;
+
+        const writeLoop = async () => {
+            for (let i = 0; i < phrase.length; i++) {
+                setVisibleWords((previous) => [...previous, phrase[i]]);
+                if (i === 1) {
+                    setTimeout(() => setShowSubtext(true), 250);
+                }
+                sleep(250);
+            }
+        };
+        writeLoop();
+    }, [isVisible]);
+
     return (
         <>
             <div className='text-center'>
@@ -12,16 +40,38 @@ const Header = () => {
                 </div>
             </div>
 
-            <div className="grid grid-rows-2 gap-2 items-center text-center font-geist">
-                <div className="text-black text-5xl font-medium leading-tight animate-fade-in"> Why Choose sKrapy? </div>
-                <div className="text-gray-500 text-xl leading-relaxed animate-fade-in-delay"> Because We're Not Just Another Scrap Platform </div>
+            <div ref={loadRef} className="grid grid-rows-2 gap-2 items-center text-center font-geist">
+                <div ref={parallaxRef} className={`text-black text-5xl font-medium leading-tight 
+                }`}>
+                    {visibleWords.map((word, index) => (
+                        <span
+                            key={index}
+                            className="inline-block opacity-0 animate-fade-in"
+                            style={{
+                                animationDelay: `${index * 0.3}s`,
+                                animationFillMode: "forwards",
+                            }}>
+                            {word}&nbsp;
+                        </span>
+                    ))}
+                </div>
+                <div
+                    ref={parallaxRef}
+                    className={`text-gray-500 text-xl leading-relaxed transition-all duration-700 ease-out
+                        ${showSubtext ? "opacity-100 scale-100 animate-fade-in-delay" : "opacity-0 scale-95"}
+                    `}
+                    >
+                    Because We're Not Just Another Scrap Platform
+                </div>
+
             </div>
 
-            <style jsx>{`
+            <style jsx >{`
                 @keyframes fade-in {
                     from {
                         opacity: 0;
-                        transform: translateY(30px);
+                        transform: translateY(15px);
+                        filter: blur(5px);
                     }
                     to {
                         opacity: 1;
@@ -30,18 +80,14 @@ const Header = () => {
                 }
 
                 .animate-fade-in {
-                    animation: fade-in 0.8s ease-out;
+                    animation: fade-in 0.5s ease-out;
                 }
 
                 .animate-fade-in-delay {
                     animation: fade-in 0.8s ease-out 0.3s both;
                 }
-
-                .animate-fade-in-delay-2 {
-                    animation: fade-in 0.8s ease-out 0.6s both;
-                }
-            `}</style>
-
+            `}
+            </style>
         </>
     );
 };
@@ -92,7 +138,6 @@ const WhyChooseFeatures = () => {
                 }`}
                 style={{
                     transform: `translate(0, 1%) translateY(${scrollY}px)`,
-                    // filter: "drop-shadow(0 0px 0px rgba(0,0,0,0.3))",
                 }}
                 >
                     <div className="w-fit p-5 rounded-4xl bg-[#A9DD66] mb-5">
