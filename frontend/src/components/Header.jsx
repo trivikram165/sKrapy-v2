@@ -27,12 +27,12 @@ const Header = () => {
         <div className="w-full max-w-7xl mx-auto flex items-center justify-between bg-white rounded-2xl shadow-sm px-6 py-3">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <Image src="../logo/logo1.svg" alt="Logo" width={100} height={100} priority />
+            <Image src="/logo/logo1.svg" alt="Logo" width={100} height={100} priority />
           </div>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-10 font-medium text-gray-800">
-            <a href="#home" className="hover:text-[#7CB342] transition-colors">Home</a>
+            <a href="#" className="hover:text-[#7CB342] transition-colors">Home</a>
             <a href="#prices" className="hover:text-[#7CB342] transition-colors">Our Prices</a>
             <a href="#services" className="hover:text-[#7CB342] transition-colors">Services</a>
             <a href="#why-us" className="hover:text-[#7CB342] transition-colors">Why Us</a>

@@ -2,8 +2,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isProtectedRoute = createRouteMatcher([
-  "/user(.*)", // Protects all /user routes and subroutes
-  "/vendor(.*)", // Protects the /vendor route
+  "/dashboard/user(.*)", // Protects the /dashboard/user route
+  "/dashboard/vendor(.*)", // Protects the /dashboard/vendor route
 ]);
 
 export default clerkMiddleware((auth, req) => {

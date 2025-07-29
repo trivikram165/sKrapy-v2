@@ -276,6 +276,21 @@ const Timeline = () => {
 
 // Main Component
 const HowSKrapyWorks = () => {
+  const mounted = useMounted();
+  
+  if (!mounted) {
+    return (
+      <div className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
+        <div className='max-w-6xl mx-auto'>
+          <Header />
+          <div className="text-center py-20">
+            <div className="text-gray-500">Loading...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
       <div className='max-w-6xl mx-auto'>

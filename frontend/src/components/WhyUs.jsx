@@ -111,6 +111,23 @@ const WhyChooseFeatures = () => {
 };
 
 const WhyUs = () => {
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    if (!mounted) {
+        return (
+            <div id="why-us" className="min-h-screen bg-[#FCF9F2] py-16 px-4 place-items-center">
+                <Header />
+                <div className="text-center py-20">
+                    <div className="text-gray-500">Loading...</div>
+                </div>
+            </div>
+        );
+    }
+    
     return (
         <div id="why-us" className="min-h-screen bg-[#FCF9F2] py-16 px-4 place-items-center">
             <Header />
