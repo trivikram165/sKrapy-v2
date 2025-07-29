@@ -3,7 +3,7 @@ import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-[#F5F3F0] py-10 px-6 md:px-20 text-gray-800">
+    <footer className="bg-white py-10 px-6 md:px-20 text-gray-800">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
         
         {/* Left Section - Logo and Tagline */}

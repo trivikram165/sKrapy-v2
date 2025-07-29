@@ -277,7 +277,7 @@ const Timeline = () => {
 // Main Component
 const HowSKrapyWorks = () => {
   return (
-    <div className='min-h-screen bg-gray-50 py-16 px-4'>
+    <div className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
       <div className='max-w-6xl mx-auto'>
         <Header />
         <Timeline />
