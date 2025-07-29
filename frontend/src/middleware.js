@@ -1,0 +1,1 @@
+// `middleware.js`: This crucial file (at the root of your project, outside `src`) tells Clerk which pages are public and which require a user to be signed in.
