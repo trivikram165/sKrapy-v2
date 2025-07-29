@@ -279,3 +279,4 @@ const ScrapPricingPage = () => {
 };
 
 export default ScrapPricingPage;
+export { useParallaxScroll, useLoadAnimation };
