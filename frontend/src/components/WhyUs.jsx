@@ -112,7 +112,7 @@ const WhyChooseFeatures = () => {
 
 const WhyUs = () => {
     return (
-        <div className="min-h-screen bg-[#FCF9F2] py-16 px-4 place-items-center">
+        <div id="why-us" className="min-h-screen bg-[#FCF9F2] py-16 px-4 place-items-center">
             <Header />
             <WhyChooseFeatures />
         </div>

@@ -2,9 +2,27 @@
 import React from 'react';
 import Header from './Header';
 
-
-
 const Hero = () => {
+  const scrollToWhyUs = () => {
+    const whyUsSection = document.getElementById('why-us');
+    if (whyUsSection) {
+      whyUsSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
+  const scrollToPrices = () => {
+    const pricesSection = document.getElementById('prices');
+    if (pricesSection) {
+      pricesSection.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   return (
     <>
       <Header />
@@ -33,15 +51,21 @@ const Hero = () => {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-delay-2">
-          <button className="text-gray-800 px-8 py-4 rounded-lg font-inter font-medium hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl min-w-[160px]" style={{ backgroundColor: '#EBF0DD', border: '1px solid #DFE6D3' }}>
+          <button 
+            onClick={scrollToWhyUs}
+            className="text-gray-800 px-8 py-4 rounded-lg font-inter font-medium hover:bg-gray-300 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl min-w-[160px]" 
+            style={{ backgroundColor: '#EBF0DD', border: '1px solid #DFE6D3' }}
+          >
             Our Services
           </button>
-          <button className="text-white px-8 py-4 rounded-lg font-inter font-medium hover:opacity-90 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl min-w-[160px]" style={{ background: 'linear-gradient(to right, white -123%, black 74%)' }}>
+          <button 
+            onClick={scrollToPrices}
+            className="text-white px-8 py-4 rounded-lg font-inter font-medium hover:opacity-90 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl min-w-[160px]" 
+            style={{ background: 'linear-gradient(to right, white -123%, black 74%)' }}
+          >
             Our Prices
           </button>
         </div>
-
-        
       </div>
 
       <style jsx>{`
