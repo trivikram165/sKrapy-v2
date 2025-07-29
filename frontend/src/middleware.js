@@ -6,9 +6,20 @@ const isProtectedRoute = createRouteMatcher([
   "/dashboard/vendor(.*)", // Protects the /dashboard/vendor route
 ]);
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
-    auth().protect();
+    try {
+      const { userId } = await auth();
+      if (!userId) {
+        // Redirect to sign-in if not authenticated
+        const signInUrl = new URL('/sign-in', req.url);
+        return Response.redirect(signInUrl);
+      }
+    } catch (error) {
+      console.error('Auth middleware error:', error);
+      const signInUrl = new URL('/sign-in', req.url);
+      return Response.redirect(signInUrl);
+    }
   }
 });
 
