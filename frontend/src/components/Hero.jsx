@@ -3,7 +3,7 @@ import React from 'react';
 
 const Hero = () => {
   return (
-    <section className="bg-[#F5F3F0] py-20 px-6 min-h-screen flex items-center justify-center relative overflow-hidden">
+    <section className="bg-[#FCF9F2] py-20 px-6 min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-20 left-20 w-32 h-32 bg-[#8BC34A] rounded-full"></div>
