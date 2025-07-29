@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useParallaxScroll, useLoadAnimation } from "./Prices";
 
 const Header = () => {
     return (
@@ -12,16 +13,46 @@ const Header = () => {
             </div>
 
             <div className="grid grid-rows-2 gap-2 items-center text-center font-geist">
-                <div className="text-black text-5xl font-medium"> Why Choose sKrapy? </div>
-                <div className="text-gray-500 text-xl"> Because We're Not Just Another Scrap Platform </div>
+                <div className="text-black text-5xl font-medium leading-tight animate-fade-in"> Why Choose sKrapy? </div>
+                <div className="text-gray-500 text-xl leading-relaxed animate-fade-in-delay"> Because We're Not Just Another Scrap Platform </div>
             </div>
+
+            <style jsx>{`
+                @keyframes fade-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(30px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .animate-fade-in {
+                    animation: fade-in 0.8s ease-out;
+                }
+
+                .animate-fade-in-delay {
+                    animation: fade-in 0.8s ease-out 0.3s both;
+                }
+
+                .animate-fade-in-delay-2 {
+                    animation: fade-in 0.8s ease-out 0.6s both;
+                }
+            `}</style>
+
         </>
     );
 };
 
 const WhyChooseFeatures = () => {
+
+    const [parallaxRef, scrollY] = useParallaxScroll(0.3);
+    const [loadRef, isVisible] = useLoadAnimation();
+    
     return (
-        <div className="grid grid-rows-3 grid-cols-2 gap-5 font-geist mt-5 max-w-6xl mx-auto">
+        <div ref={loadRef} className="grid grid-rows-3 grid-cols-2 gap-5 font-geist mt-5 max-w-6xl mx-auto">
             {[
                 {
                     icon: "box",
@@ -54,7 +85,16 @@ const WhyChooseFeatures = () => {
                     desc: "Leverage blockchain for secure, transparent, and traceable transactions in your recycling journey.",
                 },
             ].map(({ icon, title, desc }) => (
-                <div key={icon} className="flex flex-col p-5 rounded-3xl bg-white shadow-sm">
+                <div key={icon} ref={parallaxRef} className={`flex flex-col p-5 rounded-3xl bg-white shadow-sm transition-all duration-1000 ease-out ${
+                    isVisible
+                    ? "opacity-100 scale-100 translate-y-0"
+                    : "opacity-0 scale-95 translate-y-8"
+                }`}
+                style={{
+                    transform: `translate(0, 1%) translateY(${scrollY}px)`,
+                    // filter: "drop-shadow(0 0px 0px rgba(0,0,0,0.3))",
+                }}
+                >
                     <div className="w-fit p-5 rounded-4xl bg-[#A9DD66] mb-5">
                         <img
                             src={`/icons/whyUs/${icon}.png`}
