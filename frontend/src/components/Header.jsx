@@ -1,8 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
+import UserTypeModal from './UserTypeModal';
 // import logo from '../logo/logo1.svg'; // adjust path if needed
 
 const Header = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleGetStartedClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
   return (
     <header className="w-full sticky top-0 z-50">
       {/* Blurred top section */}
@@ -29,11 +39,18 @@ const Header = () => {
           </nav>
 
           {/* Button */}
-          <button className="text-white px-6 py-2 rounded-lg font-medium hover:opacity-90 transition-all" style={{ background: 'linear-gradient(to right, white -123%, black 74%)' }}>
+          <button 
+            onClick={handleGetStartedClick}
+            className="text-white px-6 py-2 rounded-lg font-medium hover:opacity-90 transition-all" 
+            style={{ background: 'linear-gradient(to right, white -123%, black 74%)' }}
+          >
             Get Started
           </button>
         </div>
       </div>
+
+      {/* User Type Modal */}
+      <UserTypeModal isOpen={isModalOpen} onClose={closeModal} />
     </header>
   );
 };
