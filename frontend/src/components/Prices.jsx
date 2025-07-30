@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { textAnimateLoop } from "./WhyUs";
 
 // Custom hook for parallax scroll effect
 const useParallaxScroll = (speed = 0.5) => {
@@ -59,16 +60,39 @@ const useLoadAnimation = () => {
 
 // Header Component
 const Header = () => {
+
+  const [parallaxRef, scrollY] = useParallaxScroll(0.3);
+  const [loadRef, isVisible] = useLoadAnimation();
+
+  const phrase = ["Current", "Scrap", "Prices"];
+  const [visibleWords, setVisibleWords] = useState([]);
+  const [showSubtext, setShowSubtext] = useState(false);
+
+  useEffect(() => {
+      textAnimateLoop(isVisible, phrase, setVisibleWords, setShowSubtext);
+  }, [isVisible]);
+
   return (
-    <div className='text-center mb-12'>
+    <div ref={loadRef} className='text-center mb-12'>
       <div className='inline-flex items-center bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm mb-6 font-geist shadow-lg border border-gray-700'>
         <div className='w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse'></div>
         Our prices
       </div>
-      <h1 className='text-5xl font-medium text-gray-900 mb-4 font-geist'>
-        Current Scrap Prices
+      <h1 ref={parallaxRef} className='text-5xl font-medium text-gray-900 mb-4 font-geist'>
+        {visibleWords.map((word, index) => (
+          <span
+            key={index}
+            className="inline-block opacity-0 animate-fade-in"
+            style={{
+                animationDelay: `${index * 0.3}s`,
+                animationFillMode: "forwards",
+            }}>
+            {word}&nbsp;
+          </span>
+        ))}
       </h1>
-      <p className='text-gray-500 text-lg font-geist'>
+      <p ref={parallaxRef} className={`text-gray-500 text-lg font-geist 
+          ${showSubtext ? "opacity-100 scale-100 animate-fade-in-delay" : "opacity-0 scale-95"}`}>
         Real-time pricing tied to global market indices
       </p>
     </div>

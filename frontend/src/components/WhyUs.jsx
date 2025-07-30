@@ -4,32 +4,40 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParallaxScroll, useLoadAnimation } from "./Prices";
 
 
+const textAnimateLoop = (isVisible, phrase, setVisibleWords, setShowSubtext) => {
+    
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    };
+    
+    if (!isVisible) return;
+
+    const writeLoop = async () => {
+        for (let i = 0; i < phrase.length; i++) {
+            setVisibleWords((previous) => [...previous, phrase[i]]);
+            if (i === 1) {
+                setTimeout(() => setShowSubtext(true), 150);
+            }
+            sleep(150);
+        }
+    };
+
+    writeLoop();
+}
+
 const Header = () => {
     
     const [parallaxRef, scrollY] = useParallaxScroll(0.3);
     const [loadRef, isVisible] = useLoadAnimation();
 
-    function sleep(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    };
 
     const phrase = ["Why", "Choose", "sKrapy?"];
     const [visibleWords, setVisibleWords] = useState([]);
     const [showSubtext, setShowSubtext] = useState(false);
 
-    useEffect(() => {
-        if (!isVisible) return;
 
-        const writeLoop = async () => {
-            for (let i = 0; i < phrase.length; i++) {
-                setVisibleWords((previous) => [...previous, phrase[i]]);
-                if (i === 1) {
-                    setTimeout(() => setShowSubtext(true), 250);
-                }
-                sleep(250);
-            }
-        };
-        writeLoop();
+    useEffect(() => {
+        textAnimateLoop(isVisible, phrase, setVisibleWords, setShowSubtext);
     }, [isVisible]);
 
     return (
@@ -65,29 +73,6 @@ const Header = () => {
                 </div>
 
             </div>
-
-            <style jsx >{`
-                @keyframes fade-in {
-                    from {
-                        opacity: 0;
-                        transform: translateY(15px);
-                        filter: blur(5px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                .animate-fade-in {
-                    animation: fade-in 0.5s ease-out;
-                }
-
-                .animate-fade-in-delay {
-                    animation: fade-in 0.8s ease-out 0.3s both;
-                }
-            `}
-            </style>
         </>
     );
 };
@@ -98,7 +83,7 @@ const WhyChooseFeatures = () => {
     const [loadRef, isVisible] = useLoadAnimation();
     
     return (
-        <div ref={loadRef} className="grid grid-rows-3 grid-cols-2 gap-5 font-geist mt-5 max-w-6xl mx-auto">
+        <div ref={loadRef} className="grid grid-rows-3 md:grid-cols-2 sm:grid-cols-1 gap-5 font-geist mt-5 max-w-6xl mx-auto">
             {[
                 {
                     icon: "box",
@@ -182,3 +167,4 @@ const WhyUs = () => {
 };
 
 export default WhyUs;
+export { textAnimateLoop };
