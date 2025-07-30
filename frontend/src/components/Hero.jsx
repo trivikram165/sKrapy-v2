@@ -1,6 +1,9 @@
 'use client';
-import React from 'react';
+
+import React, { useEffect, useRef, useState } from "react";
 import Header from './Header';
+import { textAnimateLoop } from "./WhyUs";
+import { useParallaxScroll, useLoadAnimation } from "./Prices";
 
 const Hero = () => {
   const scrollToWhyUs = () => {
@@ -22,6 +25,17 @@ const Hero = () => {
       });
     }
   };
+  
+  // Variables to achieve word by word animation
+  const [loadRef, isVisible] = useLoadAnimation();
+
+  const phrase = ["Turn", "Your", "Scrap", "into", "Cash", "with", "sKrapy"];
+  const [visibleWords, setVisibleWords] = useState([]);
+  const [showSubtext, setShowSubtext] = useState(false);
+
+  useEffect(() => {
+      textAnimateLoop(isVisible, phrase, setVisibleWords, setShowSubtext);
+  }, [isVisible]);
 
   return (
     <>
@@ -34,17 +48,35 @@ const Hero = () => {
         <div className="absolute bottom-40 left-1/4 w-40 h-40 bg-[#8BC34A] rounded-full"></div>
       </div>
 
-      <div className="container mx-auto max-w-4xl text-center relative z-10" style={{ marginTop: '-150px' }}>
+      <div ref={loadRef} className="container mx-auto max-w-4xl text-center relative z-10" style={{ marginTop: '-150px' }}>
         {/* Main Headline */}
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-medium text-gray-900 mb-8 leading-tight animate-fade-in" style={{ fontFamily: 'General Sans' }}>
-          Turn Your Scrap
+          {visibleWords.map((word, index) => (
+            <React.Fragment key={index}>
+              <span
+                className="inline-block opacity-0 animate-fade-in"
+                style={{
+                  animationDelay: `${index * 0.3}s`,
+                  animationFillMode: "forwards",
+                }}
+              >
+                {index > 5 ? (
+                  <span className="text-[#8BC34A]">{word}&nbsp;</span>
+                ) : (
+                  <span>{word}&nbsp;</span>
+                )}
+              </span>
+
+              {index === 2 && <br />}
+            </React.Fragment>
+          ))}
           <br />
-          <span className="text-gray-900">into Cash with </span>
-          <span className="text-[#8BC34A]">sKrapy</span>
         </h1>
 
         {/* Subtitle */}
-        <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-delay font-inter font-normal">
+        <p className={`text-lg md:text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-delay-2 font-inter font-normal
+              ${showSubtext ? "opacity-100 scale-100 animate-fade-in-delay" : "opacity-0 scale-95"}
+                    `}>
           Platform connecting households, businesses & industries with verified vendors for 
           secure, transparent disposal that boosts sustainability and livelihoods.
         </p>
@@ -67,31 +99,6 @@ const Hero = () => {
           </button>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
-        }
-
-        .animate-fade-in-delay {
-          animation: fade-in 0.8s ease-out 0.3s both;
-        }
-
-        .animate-fade-in-delay-2 {
-          animation: fade-in 0.8s ease-out 0.6s both;
-        }
-      `}</style>
     </section>
     </>
   );

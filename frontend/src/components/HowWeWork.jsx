@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { textAnimateLoop } from "./WhyUs";
+import { useParallaxScroll, useLoadAnimation } from "./Prices";
 
 // Custom hook to track if the component has mounted on the client
 const useMounted = () => {
@@ -102,18 +104,41 @@ const useStepVisibility = () => {
 
 // Header Component (No changes needed, as it's static)
 const Header = () => {
+
+  const [parallaxRef, scrollY] = useParallaxScroll(0.3);
+  const [loadRef, isVisible] = useLoadAnimation();
+
+  const phrase = ["How", "sKrapy", "Works"];
+  const [visibleWords, setVisibleWords] = useState([]);
+  const [showSubtext, setShowSubtext] = useState(false);
+
+  useEffect(() => {
+      textAnimateLoop(isVisible, phrase, setVisibleWords, setShowSubtext);
+  }, [isVisible]);
+
   return (
-    <div className='text-center mb-16'>
+    <div ref={loadRef} className='text-center mb-16'>
       <div className='inline-flex items-center bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm mb-6 font-geist shadow-lg border border-gray-700'>
         How we work
       </div>
-      <h1 className='text-5xl font-medium text-gray-900 mb-4 font-geist'>
-        How sKrapy Works
+      <h1 ref={parallaxRef} className='text-5xl font-medium text-gray-900 mb-4 font-geist'>
+        {visibleWords.map((word, index) => (
+          <span
+            key={index}
+            className="inline-block opacity-0 animate-fade-in"
+            style={{
+                animationDelay: `${index * 0.3}s`,
+                animationFillMode: "forwards",
+            }}>
+            {word}&nbsp;
+          </span>
+        ))}
       </h1>
-      <p className='text-gray-500 text-lg font-geist'>
+      <p className={`text-gray-500 text-lg font-geist 
+          ${showSubtext ? "opacity-100 scale-100 animate-fade-in-delay" : "opacity-0 scale-95"}`}>
         Simple 6 steps to turn your scrap into cash
       </p>
-    </div>
+  </div>
   );
 };
 
