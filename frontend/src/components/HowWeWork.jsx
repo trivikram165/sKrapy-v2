@@ -165,12 +165,13 @@ const Step = ({
             }`}
           >
             <div className='bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-md font-geist'>
-              <h3 className='text-2xl font-medium text-gray-900 mb-3 md:mb-9 font-geist'>
+              <h3 className='text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 md:mb-9 font-geist'>
                 Step #{number}
               </h3>
-              <h4 className='text-xl font-medium text-gray-800 mb-4 font-geist'>
+              <h4 className='text-base sm:text-lg lg:text-xl font-medium text-gray-800 mb-4 font-geist'>
                 {title}
               </h4>
+
               <p className='text-gray-600 font-normal leading-relaxed font-geist'>{description}</p>
             </div>
           </div>
@@ -202,12 +203,13 @@ const Step = ({
             }`}
           >
             <div className='bg-white rounded-2xl p-8 shadow-lg border border-gray-100 max-w-md font-geist'>
-              <h3 className='text-2xl font-medium text-gray-900 mb-3 md:mb-9 font-geist'>
+              <h3 className='text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 md:mb-9 font-geist'>
                 Step #{number}
               </h3>
-              <h4 className='text-xl font-medium text-gray-800 mb-4 font-geist'>
+              <h4 className='text-base sm:text-lg lg:text-xl font-medium text-gray-800 mb-4 font-geist'>
                 {title}
               </h4>
+
               <p className='text-gray-600 font-normal leading-relaxed font-geist'>{description}</p>
             </div>
           </div>
