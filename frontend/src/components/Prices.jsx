@@ -107,14 +107,14 @@ const PaperShredding = () => {
   return (
     <div
       ref={loadRef}
-      className={`rounded-3xl p-8 h-80 relative overflow-hidden shadow-lg transition-all duration-1000 ease-out ${
+      className={`rounded-3xl grid grid-cols-2 p-8 h-80 relative overflow-hidden shadow-lg transition-all duration-1000 ease-out ${
         isVisible
           ? "opacity-100 scale-100 translate-y-0"
           : "opacity-0 scale-95 translate-y-8"
       }`}
       style={{ backgroundColor: '#A9DD66' }}
     >
-      <div className='relative z-10 flex flex-col justify-center h-full left-4'>
+      <div className='relative z-10 flex flex-col justify-center h-full left-4 sm:-mt-5'>
         <h2 className='text-3xl font-black text-gray-800 mb-4 font-satoshi'>
           Paper Shredding
         </h2>
@@ -128,16 +128,16 @@ const PaperShredding = () => {
       {/* Paper Shredding Image */}
       <div
         ref={parallaxRef}
-        className='absolute right-6 bottom-6 w-72 h-72 top-1/2'
+        className='w-full h-full flex items-center justify-center sm:-mt-5 sm:ml-5'
         style={{
-          transform: `translate(0, -50%) translateY(${scrollY}px) rotate(-15deg)`,
+          transform: `translateY(${scrollY}px) rotate(-15deg)`,
           filter: "drop-shadow(0 10px 25px rgba(0,0,0,0.3))",
         }}
       >
         <img
           src='prices/printer.png'
           alt='Paper Shredder'
-          className='w-full h-full object-contain rounded-xl'
+          className='w-full sm:w-72 object-contain rounded-xl'
         />
       </div>
     </div>
@@ -227,19 +227,19 @@ const ElectronicWaste = () => {
   return (
     <div
       ref={loadRef}
-      className={`rounded-3xl p-8 h-80 relative overflow-hidden shadow-lg transition-all duration-1000 ease-out ${
+      className={`rounded-3xl grid[grid-template-rows:2fr_1fr] p-8 h-80 relative overflow-hidden shadow-lg transition-all duration-1000 ease-out ${
         isVisible
           ? "opacity-100 scale-100 translate-y-0"
           : "opacity-0 scale-95 translate-y-8"
       }`}
       style={{ backgroundColor: '#C0ECFF' }}
     >
-      <div className='relative z-10 flex items-center justify-center text-left'>
-        <div className='flex items-start gap-16'>
+      <div className='relative z-10 flex'>
+        <div className='flex items-start flex-col sm:flex-row gap-16'>
           <h2 className='text-4xl font-black text-gray-800 font-satoshi'>
             Electronic Waste
           </h2>
-          <p className='text-gray-700 text-med leading-tight font-satoshi'>
+          <p className='text-gray-700 text-med leading-tight font-satoshi sm:mt-0 -mt-12 ml-1'>
             Verified vendors, global price-linked
             <br />
             payouts, and doorstep service turn
@@ -252,16 +252,16 @@ const ElectronicWaste = () => {
       {/* Circuit Board Image */}
       <div
         ref={parallaxRef}
-        className='absolute right-6 w-108 h-108 bottom-0'
+        className='w-108 h-108 -ml-12 sm:ml-30 '
         style={{
-          transform: `translate(0, 50%) translateY(${scrollY}px)`,
+          transform: `sm:translate(0, 50%) translateY(${scrollY}px)`,
           filter: "drop-shadow(0 8px 20px rgba(0,0,0,0.25))",
         }}
       >
         <img
           src='prices/circuit.png'
           alt='Circuit Board'
-          className='w-full h-full object-contain rounded-lg'
+          className='sm:w-7xl sm:h-full object-contain rounded-lg'
         />
       </div>
     </div>
