@@ -2,7 +2,7 @@
 import React from 'react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import Orders from '../orders/page';
+import Orders from './orders/page';
 
 const VendorDashboard = () => {
   const { user } = useUser();
@@ -52,7 +52,7 @@ const VendorDashboard = () => {
               <p className="text-gray-600 mb-4 font-geist text-sm">
                 Track your purchases and deliveries
               </p>
-              <Link href="/dashboard/orders">
+              <Link href="/dashboard/vendor/orders">
                 <button className="bg-[#8BC34A] text-white px-6 py-2 rounded-lg font-geist font-medium hover:bg-[#7CB342] transition-all">
                   View Orders
                 </button>
