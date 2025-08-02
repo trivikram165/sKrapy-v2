@@ -1,18 +1,83 @@
 'use client';
-import React from 'react';
-import { UserButton, useUser } from '@clerk/nextjs';
+import React, { useEffect, useState } from 'react';
+import { UserButton, useUser, useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Orders from './orders/page';
 
 const VendorDashboard = () => {
   const { user } = useUser();
+  const { isLoaded } = useAuth();
+  const router = useRouter();
+  const [profileChecked, setProfileChecked] = useState(false);
+
+  useEffect(() => {
+    const checkVendorProfile = async () => {
+      if (!isLoaded) {
+        console.log('VendorDashboard: Clerk not loaded yet');
+        return;
+      }
+      
+      if (!user) {
+        console.log('VendorDashboard: No user object - redirecting to sign in');
+        router.push('/sign-in');
+        return;
+      }
+
+      try {
+        console.log('VendorDashboard: User object:', user);
+        console.log('VendorDashboard: User ID:', user.id);
+        console.log('VendorDashboard: Checking vendor profile for:', user.id);
+        
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`;
+        console.log('VendorDashboard: Making request to:', apiUrl);
+        
+        const response = await fetch(apiUrl);
+        
+        console.log('VendorDashboard: Profile check response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.log('VendorDashboard: Error response:', errorText);
+          console.log('VendorDashboard: No vendor profile found, redirecting to onboarding');
+          router.push('/onboarding?role=vendor');
+          return;
+        }
+
+        const data = await response.json();
+        console.log('VendorDashboard: Profile check data:', data);
+
+        if (!data.success || !data.profileCompleted) {
+          console.log('VendorDashboard: Vendor profile not completed, redirecting to onboarding');
+          router.push('/onboarding?role=vendor');
+          return;
+        }
+
+        console.log('VendorDashboard: Vendor profile completed, allowing access');
+        setProfileChecked(true);
+      } catch (error) {
+        console.error('VendorDashboard: Profile check error:', error);
+        router.push('/onboarding?role=vendor');
+      }
+    };
+
+    checkVendorProfile();
+  }, [user, router, isLoaded]);
+
+  if (!isLoaded || !user || !profileChecked) {
+    return (
+      <div className="min-h-screen bg-[#FCF9F2] flex items-center justify-center">
+        <div className="text-gray-600 font-geist">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className='min-h-screen font-geist bg-[#FCF9F2] py-16 px-4'>
       {/* Header */}
       <div className='max-w-7xl mx-auto mb-8'>
         <div className='flex justify-between items-center rounded-2xl px-2 py-4'>
-          <h1 className='text-4xl font-medium text-gray-900 font-geist'>
+          <h1 className='text-3xl sm:text-4xl font-medium text-gray-900 font-geist'>
             Vendor Dashboard
           </h1>
           <div className='flex justify-between items-center gap-8'>

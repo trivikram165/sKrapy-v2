@@ -4,6 +4,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isProtectedRoute = createRouteMatcher([
   "/dashboard/user(.*)", // Protects the /dashboard/user route
   "/dashboard/vendor(.*)", // Protects the /dashboard/vendor route
+  "/onboarding", // Protects the onboarding route
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
