@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import UserTypeModal from './UserTypeModal';
-// import logo from '../logo/logo1.svg'; // adjust path if needed
 
 const Header = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);

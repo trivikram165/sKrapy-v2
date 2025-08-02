@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { SignUpButton } from '@clerk/nextjs';
+import { SignInButton } from '@clerk/nextjs';
 
 const UserTypeModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -27,29 +27,33 @@ const UserTypeModal = ({ isOpen, onClose }) => {
           
           <div className="space-y-4">
             {/* User/Seller Button */}
-            <SignUpButton 
+            <SignInButton 
               mode="modal"
               forceRedirectUrl="/dashboard/user"
               signInForceRedirectUrl="/dashboard/user"
             >
-              <button className="w-full bg-[#EBF0DD] text-gray-800 px-8 py-4 rounded-lg font-geist font-medium hover:bg-[#DFE6D3] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-[#DFE6D3]">
+              <button 
+                onClick={() => localStorage.setItem('selectedRole', 'user')}
+                className="w-full bg-[#EBF0DD] text-gray-800 px-8 py-4 rounded-lg font-geist font-medium hover:bg-[#DFE6D3] transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border border-[#DFE6D3]"
+              >
                 I'm a User (Sell Scrap)
               </button>
-            </SignUpButton>
+            </SignInButton>
             
             {/* Vendor/Buyer Button */}
-            <SignUpButton 
+            <SignInButton 
               mode="modal"
               forceRedirectUrl="/dashboard/vendor"
               signInForceRedirectUrl="/dashboard/vendor"
             >
               <button 
+                onClick={() => localStorage.setItem('selectedRole', 'vendor')}
                 className="w-full text-white px-8 py-4 rounded-lg font-geist font-medium hover:opacity-90 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl" 
                 style={{ background: 'linear-gradient(to right, white -123%, black 74%)' }}
               >
                 I'm a Vendor (Buy Scrap)
               </button>
-            </SignUpButton>
+            </SignInButton>
           </div>
         </div>
       </div>
