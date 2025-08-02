@@ -1,5 +1,6 @@
 import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import UserCreationHook from "../components/UserCreationHook";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+          <UserCreationHook />
           <main>{children}</main>
         </body>
       </html>

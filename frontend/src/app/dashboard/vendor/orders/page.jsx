@@ -1,76 +1,204 @@
 'use client';
-import React, { useState } from 'react';
-import { UserButton } from '@clerk/nextjs';
+import React, { useState, useEffect } from 'react';
+import { UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 
-const VendorDashboard = () => {
-  const [orders, setOrders] = useState([
-    {
-      orderNumber: 1,
-      name: 'Person A',
-      location: 'XYZ house, 7th cross, ABC layout Bangalore 5600XX',
-      date: '01.08.2025',
-      time: '2:30 PM',
-      orderSummary: ['3kg Plastic'],
-      status: 'Accepted',
-      action: 'Pay',
-    },
-    {
-      orderNumber: 2,
-      name: 'Person B',
-      location: 'ABC house, 7th cross, ABC layout Bangalore 5600XX',
-      date: '01.08.2025',
-      time: '2:30 PM',
-      orderSummary: ['3kg Plastic', '2kg Newspaper'],
-      status: 'Paid',
-      action: 'Paid',
-    },
-    {
-      orderNumber: 3,
-      name: 'Person C',
-      location: 'REF house, 7th cross, ABC layout Bangalore 5600XX',
-      date: '01.08.2025',
-      time: '2:30 PM',
-      orderSummary: ['1kg Aluminium'],
-      status: 'Pending',
-      action: 'Accept',
-    },
-  ]);
+const VendorOrders = () => {
+  const { user } = useUser();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [vendorProfile, setVendorProfile] = useState(null);
+  const [active, setActive] = useState('All');
+  const tabs = ['All', 'Pending', 'Accepted', 'In Progress', 'Payment Pending', 'Completed'];
+
+  useEffect(() => {
+    const fetchVendorProfile = async () => {
+      if (!user) return;
+
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`);
+        const data = await response.json();
+
+        if (data.success) {
+          setVendorProfile(data.user);
+        }
+      } catch (error) {
+        console.error('Fetch vendor profile error:', error);
+      }
+    };
+
+    fetchVendorProfile();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user || !vendorProfile) return;
+
+      try {
+        // Fetch available orders in vendor's pincode
+        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/available/${vendorProfile.address.pincode}`);
+        const availableData = await availableResponse.json();
+
+        // Fetch vendor's accepted orders
+        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/vendor/${user.id}`);
+        const myData = await myResponse.json();
+
+        // Combine both arrays
+        const allOrders = [
+          ...(availableData.success ? availableData.data : []),
+          ...(myData.success ? myData.data : [])
+        ];
+
+        // Transform orders to match the original format
+        const transformedOrders = allOrders.map(order => ({
+          orderNumber: order.orderNumber || order._id.slice(-6),
+          name: order.userName || `User ${order.userId.slice(-4)}`, // Use actual user name from backend
+          location: `${order.userAddress.fullAddress}, ${order.userAddress.city} ${order.userAddress.pincode}`,
+          date: new Date(order.createdAt).toLocaleDateString('en-GB'),
+          time: new Date(order.createdAt).toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          orderSummary: order.items.map(item => `${item.quantity}${item.unit} ${item.name}`),
+          status: order.vendorId ? 
+            (order.status === 'accepted' ? 'Accepted' : 
+             order.status === 'in_progress' ? 'In Progress' : 
+             order.status === 'payment_pending' ? 'Payment Pending' : 
+             order.status === 'completed' ? 'Completed' : 'Accepted') : 'Pending',
+          action: order.vendorId ? 
+            (order.status === 'accepted' ? 'Start' : 
+             order.status === 'in_progress' ? 'Pay' : 
+             order.status === 'payment_pending' ? 'Awaiting Payment' : 
+             order.status === 'completed' ? 'Completed' : 'Accept') : 'Accept',
+          orderId: order._id,
+          totalAmount: order.totalAmount,
+          vendorId: order.vendorId
+        }));
+
+        setOrders(transformedOrders);
+      } catch (error) {
+        console.error('Fetch orders error:', error);
+        setError('Something went wrong. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [user, vendorProfile]);
+
+  const handleAcceptOrder = async (orderNumber) => {
+    const order = orders.find(o => o.orderNumber === orderNumber);
+    if (!order) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/accept`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendorId: user.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the order status locally
+        setOrders(prev => prev.map(o => 
+          o.orderNumber === orderNumber 
+            ? { ...o, status: 'Accepted', action: 'Start', vendorId: user.id }
+            : o
+        ));
+      } else {
+        alert(data.message || 'Failed to accept order');
+      }
+    } catch (error) {
+      console.error('Accept order error:', error);
+      alert('Something went wrong. Please try again.');
+    }
+  };
+
+  const handleUpdateStatus = async (orderNumber, newStatus) => {
+    const order = orders.find(o => o.orderNumber === orderNumber);
+    if (!order) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the order status locally
+        setOrders(prev => prev.map(o => 
+          o.orderNumber === orderNumber 
+            ? { 
+                ...o, 
+                status: newStatus === 'in_progress' ? 'In Progress' : 
+                        newStatus === 'payment_pending' ? 'Payment Pending' : 'Completed',
+                action: newStatus === 'in_progress' ? 'Pay' : 
+                        newStatus === 'payment_pending' ? 'Awaiting Payment' : 'Completed'
+              }
+            : o
+        ));
+      } else {
+        alert(data.message || 'Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Update order status error:', error);
+      alert('Something went wrong. Please try again.');
+    }
+  };
 
   const handleCancelOrder = (orderNumber) => {
-    const updatedOrders = orders.map((order) =>
-      order.orderNumber === orderNumber ? { ...order, status: "Pending", action: "Accept" } : order
-    );
-    setOrders(updatedOrders);
+    // For now, just change status back to pending locally
+    setOrders(prev => prev.map(o => 
+      o.orderNumber === orderNumber 
+        ? { ...o, status: 'Pending', action: 'Accept', vendorId: null }
+        : o
+    ));
   };
-
-  const handleAcceptOrder = (orderNumber) => {
-    const updatedOrders = orders.map((order) =>
-      order.orderNumber === orderNumber
-        ? { ...order, status: "Accepted", action: "Pay" }
-        : order
-    );
-    setOrders(updatedOrders);
-  };
-
-
-  const [active, setActive] = useState('All');
-  const tabs = ['All', 'Pending', 'Accepted', 'Paid'];
 
   const actionStyles = {
-    Pay: 'bg-[#aadd66] w-full text-black hover:bg-[#9DCC5E] cursor-pointer transition duration-100 ease-in',
+    Start: 'bg-orange-500 w-full text-white hover:bg-orange-600 cursor-pointer transition duration-100 ease-in',
     Accept: 'bg-black w-full text-white hover:bg-gray-700 cursor-pointer transition duration-100 ease-in',
-    Paid: 'bg-[#D9D9D9] w-full text-white cursor-default',
+    Pay: 'bg-[#aadd66] w-full text-black hover:bg-[#9DCC5E] cursor-pointer transition duration-100 ease-in',
+    'Awaiting Payment': 'bg-[#D9D9D9] w-full text-gray-600 cursor-default',
+    Completed: 'bg-[#D9D9D9] w-full text-white cursor-default',
   };
 
-  const filteredOrders = orders.filter((order) =>
-    active === "All" ? true : order.status === active
-  );
+  const filteredOrders = orders.filter((order) => {
+    if (active === "All") {
+      // Hide completed orders from "All" filter
+      return order.status !== "Completed";
+    } else if (active === "Payment Pending") {
+      // Show both "Payment Pending" and "In Progress" orders in Payment Pending filter
+      return order.status === "Payment Pending" || order.status === "In Progress";
+    } else {
+      return order.status === active;
+    }
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FCF9F2] flex items-center justify-center">
+        <div className="text-gray-600 font-geist">Loading orders...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className='min-h-screen bg-[#FCF9F2] py-16 px-4 font-geist'>
+    <div className='min-h-screen bg-[#FCF9F2] font-geist'>
       {/* HEADER */}
-      <nav className='flex items-center max-w-7xl mx-auto justify-between px-6 py-4 text-gray-700 text-sm'>
+      <nav className='flex items-center max-w-7xl mx-auto justify-between px-4 sm:px-6 py-4 text-gray-700 text-sm'>
         <Link href='/dashboard/vendor' className='flex items-center group'>
           <img
             src='/icons/orders/left-arrow.png'
@@ -97,30 +225,44 @@ const VendorDashboard = () => {
         </div>
       </nav>
 
-      <h2 className='text-gray-900 font-medium text-4xl max-w-7xl mx-auto px-6 py-5'>
-        All Orders
-      </h2>
+      <div className='pb-8'>
+        <h2 className='text-gray-900 font-medium text-3xl sm:text-4xl max-w-7xl mx-auto px-4 sm:px-6 py-5'>
+          All Orders
+        </h2>
 
-      <div className='flex space-x-2 max-w-7xl mx-auto px-5'>
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActive(tab)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${
-              active === tab
-                ? "bg-black text-white"
-                : "bg-gray-200 text-black hover:bg-gray-300"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+        <div className='max-w-7xl mx-auto px-4 sm:px-5'>
+          <div className='flex space-x-2 overflow-x-auto pb-2' style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitScrollbar: { display: 'none' }
+          }}>
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActive(tab)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer whitespace-nowrap flex-shrink-0 ${
+                  active === tab
+                    ? "bg-black text-white"
+                    : "bg-gray-200 text-black hover:bg-gray-300"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* TABLE (Wrapped to match header alignment) */}
-      <div className='max-w-7xl mx-auto px-6'>
-        <div className='rounded-2xl mt-5 flex items-center justify-center overflow-x-auto font-geist'>
-          <table className='w-7xl border-collapse bg-white table-auto'>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 max-w-7xl mx-auto px-4 sm:px-6">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+      {/* DESKTOP TABLE & MOBILE CARDS */}
+      <div className='max-w-7xl mx-auto px-4 sm:px-6'>
+        {/* Desktop Table View */}
+        <div className='hidden lg:block rounded-2xl mt-5 overflow-x-auto font-geist'>
+          <table className='w-full border-collapse bg-white table-auto'>
             <thead>
               <tr className='bg-[#aadd66] text-center text-sm font-bold text-black'>
                 <th className='p-4 px-4 border-r border-2 border-[#F0F0F0] max-w-15'>
@@ -140,6 +282,9 @@ const VendorDashboard = () => {
                 </th>
                 <th className='p-4 px-4 border-r border-2 border-[#F0F0F0]'>
                   Status
+                </th>
+                <th className='p-4 px-4 border-r border-2 border-[#F0F0F0]'>
+                  Amount
                 </th>
                 <th className='p-4 px-4'>Action</th>
               </tr>
@@ -172,10 +317,10 @@ const VendorDashboard = () => {
                       <span className='text-xs'> at {order.time} </span>
                     </td>
                     <td className='p-4 border-r border-2 border-[#F0F0F0] font-medium'>
-                      {order.orderSummary.map((item, index) => (
-                        <span key={index}>
+                      {order.orderSummary.map((item, idx) => (
+                        <span key={idx}>
                           {item}
-                          {index < order.orderSummary.length - 1 && <br />}
+                          {idx < order.orderSummary.length - 1 && <br />}
                         </span>
                       ))}
                     </td>
@@ -188,33 +333,46 @@ const VendorDashboard = () => {
                     >
                       {order.status}
                     </td>
+                    <td className='p-4 border-r border-2 border-[#F0F0F0] font-bold text-[#8BC34A]'>
+                      ₹{order.totalAmount}
+                    </td>
                     <td className='p-4'>
-                        {order.action === "Pay" ? (
-                            <div className='flex items-center gap-4'>
-                            <button className={buttonClass}>
-                                {order.action}
-                            </button>
-                            <button
-                                onClick={() => handleCancelOrder(order.orderNumber)}
-                                className='bg-gray-200 p-2 rounded-full hover:bg-red-600 cursor-pointer'
-                            >
-                                <img
-                                src='/icons/orders/x.png'
-                                alt='Cancel'
-                                className='h-3 w-4 object-cover'
-                                />
-                            </button>
-                            </div>
-                        ) : order.action === "Accept" ? (
-                            <button
+                      {order.action === "Start" ? (
+                        <div className='flex items-center gap-4'>
+                          <button 
                             className={buttonClass}
-                            onClick={() => handleAcceptOrder(order.orderNumber)}
-                            >
+                            onClick={() => handleUpdateStatus(order.orderNumber, 'in_progress')}
+                          >
                             {order.action}
-                            </button>
-                        ) : (
-                            <button className={buttonClass}>{order.action}</button>
-                        )}
+                          </button>
+                          <button
+                            onClick={() => handleCancelOrder(order.orderNumber)}
+                            className='bg-gray-200 p-2 rounded-full hover:bg-red-600 cursor-pointer'
+                          >
+                            <img
+                              src='/icons/orders/x.png'
+                              alt='Cancel'
+                              className='h-3 w-4 object-cover'
+                            />
+                          </button>
+                        </div>
+                      ) : order.action === "Accept" ? (
+                        <button
+                          className={buttonClass}
+                          onClick={() => handleAcceptOrder(order.orderNumber)}
+                        >
+                          {order.action}
+                        </button>
+                      ) : order.action === "Pay" ? (
+                        <button
+                          className={buttonClass}
+                          onClick={() => handleUpdateStatus(order.orderNumber, 'payment_pending')}
+                        >
+                          {order.action}
+                        </button>
+                      ) : (
+                        <button className={buttonClass}>{order.action}</button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -222,9 +380,134 @@ const VendorDashboard = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View */}
+        <div className='lg:hidden mt-5 space-y-4'>
+          {filteredOrders.map((order, index) => {
+            const buttonClass = `px-4 py-2 rounded-lg text-sm font-medium ${
+              actionStyles[order.action] ||
+              "bg-[#D9D9D9] text-white cursor-default"
+            }`;
+
+            return (
+              <div
+                key={index}
+                className='bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3'
+              >
+                {/* Header Row */}
+                <div className='flex justify-between items-start'>
+                  <div>
+                    <div className='text-sm font-bold text-gray-900'>
+                      #{order.orderNumber}
+                    </div>
+                    <div className='text-sm text-gray-600 mt-1'>
+                      {order.name}
+                    </div>
+                  </div>
+                  <div className='text-right'>
+                    <div className='text-lg font-bold text-[#8BC34A]'>
+                      ₹{order.totalAmount}
+                    </div>
+                    <div className={`text-sm font-medium ${
+                      order.status === "Completed" ? "text-[#70707F]" : "text-black"
+                    }`}>
+                      {order.status}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Row */}
+                <div className='border-t border-gray-100 pt-3'>
+                  <div className='text-sm text-gray-600 mb-1'>📍 Pickup Location</div>
+                  <div className='text-sm font-medium text-gray-900'>
+                    {order.location}
+                  </div>
+                </div>
+
+                {/* Time Row */}
+                <div className='flex justify-between items-center'>
+                  <div>
+                    <div className='text-sm text-gray-600'>📅 Date & Time</div>
+                    <div className='text-sm font-medium text-gray-900'>
+                      {order.date} at {order.time}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Summary */}
+                <div>
+                  <div className='text-sm text-gray-600 mb-1'>📦 Items</div>
+                  <div className='text-sm font-medium text-gray-900'>
+                    {order.orderSummary.map((item, idx) => (
+                      <div key={idx} className='mb-1'>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Row */}
+                <div className='border-t border-gray-100 pt-3'>
+                  {order.action === "Start" ? (
+                    <div className='flex gap-3'>
+                      <button 
+                        className={`${buttonClass} flex-1`}
+                        onClick={() => handleUpdateStatus(order.orderNumber, 'in_progress')}
+                      >
+                        {order.action}
+                      </button>
+                      <button
+                        onClick={() => handleCancelOrder(order.orderNumber)}
+                        className='bg-gray-200 p-2 rounded-lg hover:bg-red-600 transition-colors'
+                      >
+                        <img
+                          src='/icons/orders/x.png'
+                          alt='Cancel'
+                          className='h-4 w-4 object-cover'
+                        />
+                      </button>
+                    </div>
+                  ) : order.action === "Accept" ? (
+                    <button
+                      className={`${buttonClass} w-full`}
+                      onClick={() => handleAcceptOrder(order.orderNumber)}
+                    >
+                      {order.action}
+                    </button>
+                  ) : order.action === "Pay" ? (
+                    <button
+                      className={`${buttonClass} w-full`}
+                      onClick={() => handleUpdateStatus(order.orderNumber, 'payment_pending')}
+                    >
+                      {order.action}
+                    </button>
+                  ) : (
+                    <button className={`${buttonClass} w-full`}>
+                      {order.action}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Empty State */}
+        {filteredOrders.length === 0 && (
+          <div className='text-center py-12'>
+            <div className='text-gray-500 text-lg mb-2'>No orders found</div>
+            <div className='text-gray-400 text-sm'>
+              {active === 'All' 
+                ? 'No orders available in your area yet.' 
+                : `No ${active.toLowerCase()} orders at the moment.`
+              }
+            </div>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );
 };
 
-export default VendorDashboard;
+export default VendorOrders;
