@@ -99,7 +99,7 @@ const AuthWrapper = ({ children }) => {
 
         console.log('AuthWrapper: Using role for profile check:', userRole, 'on path:', pathname);
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/${userRole}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/${userRole}`;
         console.log('AuthWrapper: Making API call to:', apiUrl);
         
         const response = await fetch(apiUrl);

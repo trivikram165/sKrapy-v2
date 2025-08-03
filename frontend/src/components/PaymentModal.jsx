@@ -24,7 +24,7 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
 
     setIsSavingWallet(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/vendor`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/vendor`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
