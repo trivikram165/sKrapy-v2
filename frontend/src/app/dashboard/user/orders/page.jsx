@@ -3,19 +3,21 @@ import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { ArrowLeft, Package, Clock, CheckCircle, XCircle, Truck } from 'lucide-react';
+import WalletModal from '../../../../components/WalletModal';
 
 const UserOrders = () => {
   const { user } = useUser();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/user/${user.id}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/user/${user.id}`);
         const data = await response.json();
 
         if (data.success) {
@@ -95,6 +97,10 @@ const UserOrders = () => {
     });
   };
 
+  const handleWalletClick = () => {
+    setIsWalletModalOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F3F0] flex items-center justify-center">
@@ -114,6 +120,12 @@ const UserOrders = () => {
           </span>
         </Link>
         <div className="flex items-center space-x-4">
+          <button 
+            onClick={handleWalletClick}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <img src="/icons/wallet.svg" alt="Wallet" width={32} height={32} />
+          </button>
           <Link href="/dashboard/user">
             <button className="bg-gradient-to-r from-gray-700 to-black text-white px-5 py-2 font-geist rounded-full text-sm font-medium hover:from-gray-600 hover:to-gray-900 transition duration-300">
               Dashboard
@@ -217,6 +229,13 @@ const UserOrders = () => {
           </div>
         )}
       </main>
+
+      {/* Wallet Modal */}
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => setIsWalletModalOpen(false)} 
+        userType="user"
+      />
     </div>
   );
 };

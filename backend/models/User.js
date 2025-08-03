@@ -66,6 +66,14 @@ const userSchema = new mongoose.Schema({
       message: 'GSTIN must be exactly 15 characters (letters and numbers only)'
     }
   },
+  walletAddress: {
+    type: String,
+    default: null
+  },
+  walletReminderDismissed: {
+    type: Boolean,
+    default: false
+  },
   profileCompleted: {
     type: Boolean,
     default: false

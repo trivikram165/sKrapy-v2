@@ -153,6 +153,77 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// @route   PUT /api/users/wallet/:clerkId/:role
+// @desc    Update user wallet address
+// @access  Public
+router.put('/wallet/:clerkId/:role', async (req, res) => {
+  try {
+    const { clerkId, role } = req.params;
+    const { walletAddress } = req.body;
+
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Wallet address is required'
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { clerkId, role },
+      { walletAddress },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Wallet address updated successfully',
+      data: { walletAddress: user.walletAddress }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Failed to update wallet address',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/users/wallet/:clerkId/:role
+// @desc    Get user wallet address
+// @access  Public
+router.get('/wallet/:clerkId/:role', async (req, res) => {
+  try {
+    const { clerkId, role } = req.params;
+
+    const user = await User.findOne({ clerkId, role }).select('walletAddress');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { walletAddress: user.walletAddress }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
 // @route   DELETE /api/users/:id
 // @desc    Delete user
 // @access  Public
@@ -175,6 +246,70 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server Error',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/users/wallet-reminder/:clerkId/:role
+// @desc    Update wallet reminder dismissal status
+// @access  Public
+router.put('/wallet-reminder/:clerkId/:role', async (req, res) => {
+  try {
+    const { clerkId, role } = req.params;
+    const { dismissed } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { clerkId, role },
+      { walletReminderDismissed: dismissed },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Wallet reminder status updated successfully',
+      data: { walletReminderDismissed: user.walletReminderDismissed }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update wallet reminder status',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/users/wallet-reminder/:clerkId/:role
+// @desc    Get wallet reminder dismissal status
+// @access  Public
+router.get('/wallet-reminder/:clerkId/:role', async (req, res) => {
+  try {
+    const { clerkId, role } = req.params;
+
+    const user = await User.findOne({ clerkId, role }).select('walletReminderDismissed');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { walletReminderDismissed: user.walletReminderDismissed }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get wallet reminder status',
       error: error.message
     });
   }

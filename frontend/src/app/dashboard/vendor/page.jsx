@@ -4,12 +4,16 @@ import { UserButton, useUser, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Orders from './orders/page';
+import WalletModal from '../../../components/WalletModal';
+import WalletRecommendationModal from '../../../components/WalletRecommendationModal';
 
 const VendorDashboard = () => {
   const { user } = useUser();
   const { isLoaded } = useAuth();
   const router = useRouter();
   const [profileChecked, setProfileChecked] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isWalletRecommendationOpen, setIsWalletRecommendationOpen] = useState(false);
 
   useEffect(() => {
     const checkVendorProfile = async () => {
@@ -29,7 +33,7 @@ const VendorDashboard = () => {
         console.log('VendorDashboard: User ID:', user.id);
         console.log('VendorDashboard: Checking vendor profile for:', user.id);
         
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/vendor`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`;
         console.log('VendorDashboard: Making request to:', apiUrl);
         
         const response = await fetch(apiUrl);
@@ -64,6 +68,53 @@ const VendorDashboard = () => {
     checkVendorProfile();
   }, [user, router, isLoaded]);
 
+  // Check wallet recommendation modal
+  useEffect(() => {
+    if (profileChecked && user) {
+      checkWalletRecommendation();
+    }
+  }, [profileChecked, user]);
+
+  const checkWalletRecommendation = async () => {
+    try {
+      // Check wallet address
+      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/vendor`);
+      const walletData = await walletResponse.json();
+      
+      // Check reminder dismissal status
+      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet-reminder/${user.id}/vendor`);
+      const reminderData = await reminderResponse.json();
+      
+      const hasWallet = walletData.success && walletData.data && walletData.data.walletAddress;
+      const reminderDismissed = reminderData.success && reminderData.data && reminderData.data.walletReminderDismissed;
+      
+      if (!hasWallet && !reminderDismissed) {
+        setIsWalletRecommendationOpen(true);
+      }
+    } catch (error) {
+      console.error('Error checking wallet status:', error);
+      // On error, show recommendation as fallback
+      setIsWalletRecommendationOpen(true);
+    }
+  };
+
+  // Listen for wallet modal open event
+  useEffect(() => {
+    const handleOpenWalletModal = () => {
+      setIsWalletModalOpen(true);
+    };
+
+    window.addEventListener('openWalletModal', handleOpenWalletModal);
+    
+    return () => {
+      window.removeEventListener('openWalletModal', handleOpenWalletModal);
+    };
+  }, []);
+
+  const handleWalletClick = () => {
+    setIsWalletModalOpen(true);
+  };
+
   if (!isLoaded || !user || !profileChecked) {
     return (
       <div className="min-h-screen bg-[#FCF9F2] flex items-center justify-center">
@@ -81,12 +132,17 @@ const VendorDashboard = () => {
             Vendor Dashboard
           </h1>
           <div className='flex justify-between items-center gap-8'>
-            <img
-              src='../icons/wallet.svg'
-              alt='Wallet Icon'
-              width={40}
-              height={40}
-            />
+            <button 
+              onClick={handleWalletClick}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <img
+                src='../icons/wallet.svg'
+                alt='Wallet Icon'
+                width={40}
+                height={40}
+              />
+            </button>
             <UserButton />
           </div>
         </div>
@@ -205,6 +261,20 @@ const VendorDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Wallet Modal */}
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => setIsWalletModalOpen(false)} 
+        userType="vendor"
+      />
+
+      {/* Wallet Recommendation Modal */}
+      <WalletRecommendationModal
+        isOpen={isWalletRecommendationOpen}
+        onClose={() => setIsWalletRecommendationOpen(false)}
+        userType="vendor"
+      />
     </div>
   );
 };

@@ -6,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import WalletModal from '../../../../components/WalletModal';
+import WalletRecommendationModal from '../../../../components/WalletRecommendationModal';
 
 const UserDashboard = () => {
   const { user } = useUser();
@@ -17,6 +19,8 @@ const UserDashboard = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isWalletRecommendationOpen, setIsWalletRecommendationOpen] = useState(false);
 
   // Handle mobile menu toggle
   const toggleMobileMenu = () => {
@@ -28,7 +32,56 @@ const UserDashboard = () => {
     setIsMobileMenuOpen(false);
     if (action === 'orders') {
       router.push('/dashboard/user/orders');
+    } else if (action === 'wallet') {
+      setIsWalletModalOpen(true);
     }
+  };
+
+  // Check wallet recommendation modal
+  useEffect(() => {
+    if (user) {
+      checkWalletRecommendation();
+    }
+  }, [user]);
+
+  const checkWalletRecommendation = async () => {
+    try {
+      // Check wallet address
+      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/user`);
+      const walletData = await walletResponse.json();
+      
+      // Check reminder dismissal status
+      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet-reminder/${user.id}/user`);
+      const reminderData = await reminderResponse.json();
+      
+      const hasWallet = walletData.success && walletData.data && walletData.data.walletAddress;
+      const reminderDismissed = reminderData.success && reminderData.data && reminderData.data.walletReminderDismissed;
+      
+      if (!hasWallet && !reminderDismissed) {
+        setIsWalletRecommendationOpen(true);
+      }
+    } catch (error) {
+      console.error('Error checking wallet status:', error);
+      // On error, show recommendation as fallback
+      setIsWalletRecommendationOpen(true);
+    }
+  };
+
+  // Listen for wallet modal open event
+  useEffect(() => {
+    const handleOpenWalletModal = () => {
+      setIsWalletModalOpen(true);
+    };
+
+    window.addEventListener('openWalletModal', handleOpenWalletModal);
+    
+    return () => {
+      window.removeEventListener('openWalletModal', handleOpenWalletModal);
+    };
+  }, []);
+
+  const handleWalletClick = () => {
+    setIsWalletModalOpen(true);
   };
 
   const categories = [
@@ -283,7 +336,7 @@ const UserDashboard = () => {
     setIsSubmittingOrder(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -370,7 +423,7 @@ const UserDashboard = () => {
               Your Orders
             </button>
           </Link>
-          <button>
+          <button onClick={handleWalletClick} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <img
               src="/icons/wallet.svg"
               alt="Wallet Icon"
@@ -743,6 +796,20 @@ const UserDashboard = () => {
           animation: fade-up 0.6s ease-out both;
         }
       `}</style>
+
+      {/* Wallet Modal */}
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => setIsWalletModalOpen(false)} 
+        userType="user"
+      />
+
+      {/* Wallet Recommendation Modal */}
+      <WalletRecommendationModal
+        isOpen={isWalletRecommendationOpen}
+        onClose={() => setIsWalletRecommendationOpen(false)}
+        userType="user"
+      />
     </div>
   );
 };

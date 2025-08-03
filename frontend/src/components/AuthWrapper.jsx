@@ -73,18 +73,33 @@ const AuthWrapper = ({ children }) => {
           console.log('AuthWrapper: Override role to user because on user dashboard');
         } else if (!userRole) {
           // For other pages, check localStorage as fallback
+          const storedRole = localStorage.getItem('userRole');
+          const selectedRole = localStorage.getItem('selectedRole');
           const lastDashboard = localStorage.getItem('lastDashboard');
-          console.log('AuthWrapper: LastDashboard from localStorage:', lastDashboard);
-          if (lastDashboard === '/dashboard/vendor') {
-            userRole = 'vendor';
-          } else {
-            userRole = 'user'; // Default to user
+          
+          console.log('AuthWrapper: No metadata role, checking localStorage:', { storedRole, selectedRole, lastDashboard });
+          
+          // Priority: selectedRole > storedRole > lastDashboard
+          userRole = selectedRole || storedRole;
+          
+          if (!userRole && lastDashboard) {
+            if (lastDashboard.includes('/dashboard/vendor')) {
+              userRole = 'vendor';
+            } else if (lastDashboard.includes('/dashboard/user')) {
+              userRole = 'user';
+            }
+          }
+          
+          // If still no role found, default to user for profile check
+          if (!userRole) {
+            userRole = 'user';
+            console.log('AuthWrapper: No role found anywhere, defaulting to user for profile check');
           }
         }
 
         console.log('AuthWrapper: Using role for profile check:', userRole, 'on path:', pathname);
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/${userRole}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/${userRole}`;
         console.log('AuthWrapper: Making API call to:', apiUrl);
         
         const response = await fetch(apiUrl);
@@ -118,13 +133,30 @@ const AuthWrapper = ({ children }) => {
         if (pathname === '/') {
           let userRole = user.publicMetadata?.role || user.unsafeMetadata?.role;
           
-          // If no role is found, check localStorage for last visited dashboard
+          // If no role is found, check localStorage for role preferences
           if (!userRole) {
+            const storedRole = localStorage.getItem('userRole');
+            const selectedRole = localStorage.getItem('selectedRole');
             const lastDashboard = localStorage.getItem('lastDashboard');
-            if (lastDashboard === '/dashboard/vendor') {
-              userRole = 'vendor';
-            } else {
-              userRole = 'user'; // Default to user
+            
+            console.log('AuthWrapper: No metadata role found, checking localStorage:', { storedRole, selectedRole, lastDashboard });
+            
+            // Priority: selectedRole > storedRole > lastDashboard > redirect to dashboard for selection
+            userRole = selectedRole || storedRole;
+            
+            if (!userRole && lastDashboard) {
+              if (lastDashboard.includes('/dashboard/vendor')) {
+                userRole = 'vendor';
+              } else if (lastDashboard.includes('/dashboard/user')) {
+                userRole = 'user';
+              }
+            }
+            
+            // If still no role, redirect to dashboard selection instead of defaulting
+            if (!userRole) {
+              console.log('AuthWrapper: No role found anywhere, redirecting to dashboard for selection');
+              router.push('/dashboard');
+              return;
             }
           }
           

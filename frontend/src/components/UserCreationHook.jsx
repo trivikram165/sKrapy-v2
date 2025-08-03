@@ -20,7 +20,7 @@ const UserCreationHook = () => {
         console.log('UserCreationHook: Detected role:', role);
         
         // Always try to create/update user to ensure they exist
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/clerk-signup`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/clerk-signup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

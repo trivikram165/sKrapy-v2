@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import PaymentModal from '../../../../components/PaymentModal';
+import WalletModal from '../../../../components/WalletModal';
 
 const VendorOrders = () => {
   const { user } = useUser();
@@ -9,7 +11,11 @@ const VendorOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [vendorProfile, setVendorProfile] = useState(null);
+  const [vendorWalletAddress, setVendorWalletAddress] = useState('');
   const [active, setActive] = useState('All');
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const tabs = ['All', 'Pending', 'Accepted', 'In Progress', 'Payment Pending', 'Completed'];
 
   // Countdown timer for cooldowns
@@ -38,7 +44,7 @@ const VendorOrders = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/vendor`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`);
         const data = await response.json();
 
         if (data.success) {
@@ -58,11 +64,11 @@ const VendorOrders = () => {
 
       try {
         // Fetch available orders in vendor's pincode with cooldown info
-        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
+        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
         const availableData = await availableResponse.json();
 
         // Fetch vendor's accepted orders
-        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/vendor/${user.id}`);
+        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/vendor/${user.id}`);
         const myData = await myResponse.json();
 
         // Combine both arrays
@@ -94,7 +100,9 @@ const VendorOrders = () => {
              order.status === 'completed' ? 'Completed' : 'Accept') : 'Accept',
           orderId: order._id,
           totalAmount: order.totalAmount,
+          totalItems: order.totalItems,
           vendorId: order.vendorId,
+          userWalletAddress: order.userWalletAddress,
           canAccept: order.canAccept !== undefined ? order.canAccept : true,
           remainingCooldown: order.remainingCooldown || 0
         }));
@@ -116,7 +124,7 @@ const VendorOrders = () => {
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/accept`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/accept`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +170,7 @@ const VendorOrders = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/reject`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/reject`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +204,7 @@ const VendorOrders = () => {
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -247,6 +255,27 @@ const VendorOrders = () => {
     ));
   };
 
+  const handlePayment = async (order) => {
+    // Fetch vendor wallet address before opening payment modal
+    let vendorWalletAddress = '';
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/vendor`);
+      const data = await response.json();
+      if (data.success && data.data && data.data.walletAddress) {
+        vendorWalletAddress = data.data.walletAddress;
+      }
+    } catch (error) {
+      console.error('Error fetching vendor wallet address:', error);
+    }
+
+    setSelectedOrder({ ...order, vendorWalletAddress });
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleWalletClick = () => {
+    setIsWalletModalOpen(true);
+  };
+
   const actionStyles = {
     Start: 'bg-orange-500 w-full text-white hover:bg-orange-600 cursor-pointer transition duration-100 ease-in',
     Accept: 'bg-black w-full text-white hover:bg-gray-700 cursor-pointer transition duration-100 ease-in',
@@ -280,7 +309,7 @@ const VendorOrders = () => {
   return (
     <div className='min-h-screen bg-[#FCF9F2] font-geist'>
       {/* HEADER */}
-      <nav className='flex items-center max-w-7xl mx-auto justify-between px-4 sm:px-6 py-4 text-gray-700 text-sm'>
+      <nav className='flex items-center max-w-7xl mx-auto justify-between px-4 sm:px-6 py-12 text-gray-700 text-sm'>
         <Link href='/dashboard/vendor' className='flex items-center group'>
           <img
             src='/icons/orders/left-arrow.png'
@@ -298,9 +327,12 @@ const VendorOrders = () => {
         </Link>
 
         <div className='flex items-center space-x-4 cursor-pointer'>
-          <div className='p-2 rounded-full hover:bg-gray-300 transition duration-200'>
+          <button 
+            onClick={handleWalletClick}
+            className='p-2 rounded-full hover:bg-gray-300 transition duration-200'
+          >
             <img src='/icons/wallet.svg' alt='Icon' width={40} height={40} />
-          </div>
+          </button>
           <div className='p-2 mt-1'>
             <UserButton />
           </div>
@@ -469,7 +501,7 @@ const VendorOrders = () => {
                       ) : order.action === "Pay" ? (
                         <button
                           className={buttonClass}
-                          onClick={() => handleUpdateStatus(order.orderNumber, 'payment_pending')}
+                          onClick={() => handlePayment(order)}
                         >
                           {order.action}
                         </button>
@@ -601,7 +633,7 @@ const VendorOrders = () => {
                   ) : order.action === "Pay" ? (
                     <button
                       className={`${buttonClass} w-full`}
-                      onClick={() => handleUpdateStatus(order.orderNumber, 'payment_pending')}
+                      onClick={() => handlePayment(order)}
                     >
                       {order.action}
                     </button>
@@ -630,6 +662,21 @@ const VendorOrders = () => {
         )}
       </div>
       </div>
+
+      {/* Payment Modal */}
+      <PaymentModal 
+        isOpen={isPaymentModalOpen} 
+        onClose={() => setIsPaymentModalOpen(false)} 
+        order={selectedOrder}
+        vendorWalletAddress={selectedOrder?.vendorWalletAddress || ''}
+      />
+
+      {/* Wallet Modal */}
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => setIsWalletModalOpen(false)} 
+        userType="vendor"
+      />
     </div>
   );
 };
