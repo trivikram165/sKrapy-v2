@@ -32,7 +32,7 @@
 - **Backend**: Node.js, Express.js, MongoDB, Mongoose
 - **Authentication**: Clerk with webhook integration
 - **Database**: MongoDB Atlas with compound indexing
-- **Deployment**: Vercel (Frontend), Node.js hosting (Backend)
+- **Deployment**: Vercel (Frontend), Render (Backend)
 
 ---
 
@@ -279,10 +279,13 @@ Create `.env.local` file in frontend directory:
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx
 CLERK_SECRET_KEY=sk_test_xxxxxxxxxxxxx
 
-# API Configuration
+# API Configuration (Development)
 NEXT_PUBLIC_API_URL=http://localhost:3001
 
-# Deployment URLs
+# API Configuration (Production)
+# NEXT_PUBLIC_API_URL=https://skrapy-backend.onrender.com
+
+# Clerk URLs (same for all environments)
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/auth/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
@@ -746,31 +749,29 @@ NEXT_PUBLIC_API_URL=https://api.your-domain.com
 
 ## Deployment
 
-### Backend Deployment (Node.js Host)
+### Backend Deployment (Render)
 
 #### Prepare for Deployment
-```bash
-# Install production dependencies only
-npm ci --only=production
+1. **Connect Repository**: Link your GitHub repository to Render
+2. **Configure Build Settings**:
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Environment: Node
 
-# Set environment variables on host
-export NODE_ENV=production
-export PORT=3001
-export MONGODB_URI="your-mongodb-connection-string"
+#### Environment Variables Setup
+Set these in Render Dashboard → Environment:
+```bash
+NODE_ENV=production
+PORT=10000
+MONGODB_URI=your-mongodb-connection-string
+FRONTEND_URL=https://your-app.vercel.app
+CLERK_WEBHOOK_SECRET=whsec_your-webhook-secret
 ```
 
-#### PM2 Process Manager
-```bash
-# Install PM2 globally
-npm install -g pm2
-
-# Start application
-pm2 start server.js --name "skrapy-api"
-
-# Save PM2 configuration
-pm2 save
-pm2 startup
-```
+#### Auto-Deploy Configuration
+- Render automatically deploys on git push to main branch
+- Monitor deployment logs in Render dashboard
+- Health checks available at `/api/health`
 
 ### Frontend Deployment (Vercel)
 

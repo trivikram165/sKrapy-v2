@@ -25,7 +25,7 @@
 | Backend    | Node.js, Express.js, MongoDB, Mongoose |
 | Auth       | Clerk (with webhooks)         |
 | Database   | MongoDB Atlas with indexing   |
-| Deployment | Vercel (Frontend), PM2 + Node Host (Backend) |
+| Deployment | Vercel (Frontend), Render (Backend) |
 
 ---
 
@@ -166,13 +166,18 @@ Backend API runs at `http://localhost:3001/api`
 2. Set env variables via dashboard
 3. Deploy
 
-### Backend (Node Host or Cloud VPS)
+### Backend (Render)
 
+1. Connect repo to Render
+2. Set environment variables in Render dashboard
+3. Deploy automatically on git push
+
+**Environment Variables for Render:**
 ```
-npm install -g pm2
-pm2 start server.js --name skrapy-api
-pm2 save
-pm2 startup
+NODE_ENV=production
+MONGODB_URI=your-mongodb-atlas-uri
+FRONTEND_URL=https://skrapy-gamma.vercel.app
+CLERK_WEBHOOK_SECRET=whsec_XXXXXXXXXXXX
 ```
 
 ---
@@ -181,10 +186,11 @@ pm2 startup
 
 | Issue                            | Fix                                       |
 |----------------------------------|--------------------------------------------|
-| "CORS error"                     | Check `FRONTEND_URL` and CORS config       |
+| "CORS error"                     | Check `FRONTEND_URL` in Render dashboard and CORS config |
 | "MongoDB connection failed"      | Verify MONGODB_URI and IP whitelist        |
 | "Stuck on onboarding"            | Ensure all required fields are submitted   |
 | Order workflow not progressing   | Validate correct order status transitions  |
+| Render deployment fails          | Check build logs in Render dashboard       |
 
 More details in the [Docs → Troubleshooting](#troubleshooting)
 
@@ -194,7 +200,7 @@ More details in the [Docs → Troubleshooting](#troubleshooting)
 
 - **Performance**: APM tools like Datadog / New Relic
 - **Error Tracking**: Sentry recommended
-- **Logging**: Use PM2 logs or integrate with ELK stack
+- **Logging**: Use Render logs or integrate with external logging services
 - **Health**:
   - Backend: `GET /api/health`
   - Frontend: Homepage returns status `200`
