@@ -2,18 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { UserButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
+import WalletModal from '../../../components/WalletModal';
+import WalletRecommendationModal from '../../../components/WalletRecommendationModal';
 
 const DashboardUser = () => {
   const { user } = useUser();
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isWalletRecommendationOpen, setIsWalletRecommendationOpen] = useState(false);
 
   useEffect(() => {
     const fetchRecentOrders = async () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/user/${user.id}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/user/${user.id}`);
         const data = await response.json();
 
         if (data.success) {
@@ -30,6 +34,53 @@ const DashboardUser = () => {
     fetchRecentOrders();
   }, [user]);
 
+  // Check wallet recommendation modal
+  useEffect(() => {
+    if (!loading && user) {
+      checkWalletRecommendation();
+    }
+  }, [loading, user]);
+
+  const checkWalletRecommendation = async () => {
+    try {
+      // Check wallet address
+      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/user`);
+      const walletData = await walletResponse.json();
+      
+      // Check reminder dismissal status
+      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet-reminder/${user.id}/user`);
+      const reminderData = await reminderResponse.json();
+      
+      const hasWallet = walletData.success && walletData.data && walletData.data.walletAddress;
+      const reminderDismissed = reminderData.success && reminderData.data && reminderData.data.walletReminderDismissed;
+      
+      if (!hasWallet && !reminderDismissed) {
+        setIsWalletRecommendationOpen(true);
+      }
+    } catch (error) {
+      console.error('Error checking wallet status:', error);
+      // On error, show recommendation as fallback
+      setIsWalletRecommendationOpen(true);
+    }
+  };
+
+  // Listen for wallet modal open event
+  useEffect(() => {
+    const handleOpenWalletModal = () => {
+      setIsWalletModalOpen(true);
+    };
+
+    window.addEventListener('openWalletModal', handleOpenWalletModal);
+    
+    return () => {
+      window.removeEventListener('openWalletModal', handleOpenWalletModal);
+    };
+  }, []);
+
+  const handleWalletClick = () => {
+    setIsWalletModalOpen(true);
+  };
+
   return (
     <div className='min-h-screen font-geist bg-[#FCF9F2] py-16 px-4'>
       {/* Header */}
@@ -39,7 +90,12 @@ const DashboardUser = () => {
             User Dashboard
           </h1>
           <div className='flex justify-between items-center gap-4 sm:gap-8'>
-            <img src="../icons/wallet.svg" alt="Wallet Icon" width={40} height={40}/>
+            <button 
+              onClick={handleWalletClick}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <img src="../icons/wallet.svg" alt="Wallet Icon" width={40} height={40}/>
+            </button>
             <UserButton />
           </div>
         </div>
@@ -164,6 +220,20 @@ const DashboardUser = () => {
           </div>
         </div>
       </div>
+
+      {/* Wallet Modal */}
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => setIsWalletModalOpen(false)} 
+        userType="user"
+      />
+
+      {/* Wallet Recommendation Modal */}
+      <WalletRecommendationModal
+        isOpen={isWalletRecommendationOpen}
+        onClose={() => setIsWalletRecommendationOpen(false)}
+        userType="user"
+      />
     </div>
   );
 };

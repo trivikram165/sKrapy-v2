@@ -93,9 +93,11 @@ router.get('/vendor/:vendorId', async (req, res) => {
       orders.map(async (order) => {
         const user = await User.findOne({ clerkId: order.userId, role: 'user' });
         const userName = user ? `${user.firstName} ${user.lastName}`.trim() || user.username : `User ${order.userId.slice(-4)}`;
+        const userWalletAddress = user ? user.walletAddress : null;
         return {
           ...order.toObject(),
-          userName
+          userName,
+          userWalletAddress
         };
       })
     );
