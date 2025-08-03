@@ -12,52 +12,43 @@ connectDB();
 const app = express();
 
 // Middleware
-// More permissive CORS for development
-if (process.env.NODE_ENV === 'development') {
-  app.use(cors({
-    origin: ['http://localhost:3000', 'https://skrapy-backend.onrender.com'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Accept', 'Origin', 'X-Requested-With'],
-    exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
-    optionsSuccessStatus: 200,
-    preflightContinue: false
-  }));
-} else {
-  app.use(cors({
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'https://skrapy-gamma.vercel.app'
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Accept', 'Origin', 'X-Requested-With'],
-    exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
-    optionsSuccessStatus: 200,
-    preflightContinue: false
-  }));
-}
+// Configure CORS for all environments
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://skrapy-gamma.vercel.app',
+      'https://skrapy-backend.onrender.com',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'x-requested-with', 
+    'Accept', 
+    'Origin', 
+    'X-Requested-With',
+    'Content-Length'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+};
 
-// Handle preflight requests
-app.options('*', (req, res) => {
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'https://skrapy-gamma.vercel.app',
-    process.env.FRONTEND_URL
-  ].filter(Boolean);
-  
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV === 'development') {
-    res.header('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', true);
-  res.status(200).send();
-});
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
