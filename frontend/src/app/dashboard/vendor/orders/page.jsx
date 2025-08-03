@@ -12,12 +12,33 @@ const VendorOrders = () => {
   const [active, setActive] = useState('All');
   const tabs = ['All', 'Pending', 'Accepted', 'In Progress', 'Payment Pending', 'Completed'];
 
+  // Countdown timer for cooldowns
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOrders(prevOrders => 
+        prevOrders.map(order => {
+          if (order.remainingCooldown > 0) {
+            const newCooldown = order.remainingCooldown - 1;
+            return {
+              ...order,
+              remainingCooldown: newCooldown,
+              canAccept: newCooldown <= 0
+            };
+          }
+          return order;
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const fetchVendorProfile = async () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/vendor`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`);
         const data = await response.json();
 
         if (data.success) {
@@ -36,12 +57,12 @@ const VendorOrders = () => {
       if (!user || !vendorProfile) return;
 
       try {
-        // Fetch available orders in vendor's pincode
-        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/available/${vendorProfile.address.pincode}`);
+        // Fetch available orders in vendor's pincode with cooldown info
+        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
         const availableData = await availableResponse.json();
 
         // Fetch vendor's accepted orders
-        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/vendor/${user.id}`);
+        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/vendor/${user.id}`);
         const myData = await myResponse.json();
 
         // Combine both arrays
@@ -73,7 +94,9 @@ const VendorOrders = () => {
              order.status === 'completed' ? 'Completed' : 'Accept') : 'Accept',
           orderId: order._id,
           totalAmount: order.totalAmount,
-          vendorId: order.vendorId
+          vendorId: order.vendorId,
+          canAccept: order.canAccept !== undefined ? order.canAccept : true,
+          remainingCooldown: order.remainingCooldown || 0
         }));
 
         setOrders(transformedOrders);
@@ -93,7 +116,7 @@ const VendorOrders = () => {
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/accept`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/accept`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -104,6 +127,15 @@ const VendorOrders = () => {
       });
 
       const data = await response.json();
+
+      if (response.status === 429) {
+        // Cooldown period - show remaining time
+        const minutes = Math.floor(data.remainingTime / 60);
+        const seconds = data.remainingTime % 60;
+        const timeString = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+        alert(`You cannot accept this order yet. Please wait ${timeString} before trying again.`);
+        return;
+      }
 
       if (data.success) {
         // Update the order status locally
@@ -121,12 +153,50 @@ const VendorOrders = () => {
     }
   };
 
+  const handleRejectOrder = async (orderNumber) => {
+    const order = orders.find(o => o.orderNumber === orderNumber);
+    if (!order) return;
+
+    if (!confirm('Are you sure you want to reject this order? You will have to wait 10 minutes before you can accept it again.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendorId: user.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the order with cooldown info
+        setOrders(prev => prev.map(o => 
+          o.orderNumber === orderNumber 
+            ? { ...o, canAccept: false, remainingCooldown: 600 } // 10 minutes
+            : o
+        ));
+        alert('Order rejected. You can accept this order again in 10 minutes.');
+      } else {
+        alert(data.message || 'Failed to reject order');
+      }
+    } catch (error) {
+      console.error('Reject order error:', error);
+      alert('Something went wrong. Please try again.');
+    }
+  };
+
   const handleUpdateStatus = async (orderNumber, newStatus) => {
     const order = orders.find(o => o.orderNumber === orderNumber);
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -158,6 +228,16 @@ const VendorOrders = () => {
     }
   };
 
+  const formatCooldownTime = (seconds) => {
+    if (seconds <= 0) return '';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes > 0) {
+      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+    return `0:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   const handleCancelOrder = (orderNumber) => {
     // For now, just change status back to pending locally
     setOrders(prev => prev.map(o => 
@@ -170,6 +250,8 @@ const VendorOrders = () => {
   const actionStyles = {
     Start: 'bg-orange-500 w-full text-white hover:bg-orange-600 cursor-pointer transition duration-100 ease-in',
     Accept: 'bg-black w-full text-white hover:bg-gray-700 cursor-pointer transition duration-100 ease-in',
+    'Accept (Cooldown)': 'bg-gray-400 w-full text-white cursor-not-allowed',
+    Reject: 'bg-red-500 w-full text-white hover:bg-red-600 cursor-pointer transition duration-100 ease-in',
     Pay: 'bg-[#aadd66] w-full text-black hover:bg-[#9DCC5E] cursor-pointer transition duration-100 ease-in',
     'Awaiting Payment': 'bg-[#D9D9D9] w-full text-gray-600 cursor-default',
     Completed: 'bg-[#D9D9D9] w-full text-white cursor-default',
@@ -357,12 +439,33 @@ const VendorOrders = () => {
                           </button>
                         </div>
                       ) : order.action === "Accept" ? (
-                        <button
-                          className={buttonClass}
-                          onClick={() => handleAcceptOrder(order.orderNumber)}
-                        >
-                          {order.action}
-                        </button>
+                        <div className='flex items-center gap-2'>
+                          {order.canAccept ? (
+                            <>
+                              <button
+                                className={buttonClass}
+                                onClick={() => handleAcceptOrder(order.orderNumber)}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                className='bg-red-500 px-3 py-1 rounded-2xl text-white hover:bg-red-600 cursor-pointer transition duration-100 ease-in'
+                                onClick={() => handleRejectOrder(order.orderNumber)}
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <div className='text-center'>
+                              <button className='bg-gray-400 px-5 py-1 rounded-2xl text-white cursor-not-allowed w-full'>
+                                Accept ({formatCooldownTime(order.remainingCooldown)})
+                              </button>
+                              <div className='text-xs text-gray-500 mt-1'>
+                                Cooldown active
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ) : order.action === "Pay" ? (
                         <button
                           className={buttonClass}
@@ -468,12 +571,33 @@ const VendorOrders = () => {
                       </button>
                     </div>
                   ) : order.action === "Accept" ? (
-                    <button
-                      className={`${buttonClass} w-full`}
-                      onClick={() => handleAcceptOrder(order.orderNumber)}
-                    >
-                      {order.action}
-                    </button>
+                    <div className='space-y-2'>
+                      {order.canAccept ? (
+                        <div className='flex gap-2'>
+                          <button
+                            className={`${buttonClass} flex-1`}
+                            onClick={() => handleAcceptOrder(order.orderNumber)}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            className='bg-red-500 px-4 py-2 rounded-lg text-sm font-medium text-white hover:bg-red-600 transition-colors'
+                            onClick={() => handleRejectOrder(order.orderNumber)}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='text-center'>
+                          <button className='bg-gray-400 px-4 py-2 rounded-lg text-sm font-medium text-white cursor-not-allowed w-full'>
+                            Accept ({formatCooldownTime(order.remainingCooldown)})
+                          </button>
+                          <div className='text-xs text-gray-500 mt-1'>
+                            Cooldown active - wait before accepting again
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : order.action === "Pay" ? (
                     <button
                       className={`${buttonClass} w-full`}

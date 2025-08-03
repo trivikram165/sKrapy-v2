@@ -115,8 +115,53 @@ router.get('/vendor/:vendorId', async (req, res) => {
   }
 });
 
+// @route   GET /api/orders/available/:pincode/:vendorId
+// @desc    Get available orders for a vendor's pincode (with cooldown info)
+// @access  Public
+router.get('/available/:pincode/:vendorId', async (req, res) => {
+  try {
+    const { pincode, vendorId } = req.params;
+    const orders = await Order.find({ 
+      'userAddress.pincode': pincode,
+      status: 'pending',
+      vendorId: null
+    }).sort({ createdAt: -1 });
+
+    // Get user details for each order and add cooldown info
+    const ordersWithUserData = await Promise.all(
+      orders.map(async (order) => {
+        const user = await User.findOne({ clerkId: order.userId, role: 'user' });
+        const userName = user ? `${user.firstName} ${user.lastName}`.trim() || user.username : `User ${order.userId.slice(-4)}`;
+        
+        // Check cooldown status for this vendor
+        const cooldownCheck = order.canVendorAccept(vendorId);
+        
+        return {
+          ...order.toObject(),
+          userName,
+          canAccept: cooldownCheck.canAccept,
+          remainingCooldown: cooldownCheck.remainingTime
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      count: ordersWithUserData.length,
+      data: ordersWithUserData
+    });
+  } catch (error) {
+    console.error('Get available orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch available orders',
+      error: error.message
+    });
+  }
+});
+
 // @route   GET /api/orders/available/:pincode
-// @desc    Get available orders for a vendor's pincode
+// @desc    Get available orders for a vendor's pincode (legacy route)
 // @access  Public
 router.get('/available/:pincode', async (req, res) => {
   try {
@@ -202,6 +247,21 @@ router.put('/:orderId/accept', async (req, res) => {
       });
     }
 
+    // Check if vendor is in cooldown period
+    const cooldownCheck = order.canVendorAccept(vendorId);
+    if (!cooldownCheck.canAccept) {
+      const minutes = Math.floor(cooldownCheck.remainingTime / 60);
+      const seconds = cooldownCheck.remainingTime % 60;
+      const timeString = minutes > 0 ? `${minutes} minute${minutes > 1 ? 's' : ''} and ${seconds} second${seconds > 1 ? 's' : ''}` : `${seconds} second${seconds > 1 ? 's' : ''}`;
+      
+      return res.status(429).json({
+        success: false,
+        message: `You cannot accept this order yet. Please wait ${timeString} before trying again.`,
+        remainingTime: cooldownCheck.remainingTime,
+        cooldownActive: true
+      });
+    }
+
     order.vendorId = vendorId;
     order.status = 'accepted';
     order.acceptedAt = new Date();
@@ -254,6 +314,49 @@ router.put('/:orderId/status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update order status',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/orders/:orderId/reject
+// @desc    Reject an order (vendor)
+// @access  Public
+router.put('/:orderId/reject', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { vendorId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Only allow rejection if vendor has accepted the order
+    if (order.vendorId !== vendorId || order.status === 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'You can only reject orders you have accepted'
+      });
+    }
+
+    // Add vendor to rejected list and reset order
+    order.rejectByVendor(vendorId);
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Order rejected successfully. You can accept this order again after 10 minutes.',
+      data: order
+    });
+  } catch (error) {
+    console.error('Reject order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject order',
       error: error.message
     });
   }

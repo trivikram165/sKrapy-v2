@@ -50,7 +50,7 @@ const OnboardingForm = () => {
     if (!user || !role) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/${role}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/${role}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -121,12 +121,8 @@ const OnboardingForm = () => {
         return false;
       }
       
-      if (!gstin.trim()) {
-        setError('GSTIN is required for vendors');
-        return false;
-      }
-      
-      if (!/^[0-9A-Z]{15}$/.test(gstin)) {
+      // GSTIN validation only if provided
+      if (gstin.trim() && !/^[0-9A-Z]{15}$/.test(gstin)) {
         setError('GSTIN must be exactly 15 characters (letters and numbers only)');
         return false;
       }
@@ -148,7 +144,7 @@ const OnboardingForm = () => {
     try {
       // First, ensure user exists in database
       console.log('Creating/updating user in database...');
-      const userCreationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/clerk-signup`, {
+      const userCreationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/clerk-signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +164,7 @@ const OnboardingForm = () => {
 
       // Now complete the profile
       console.log('Completing profile...');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/complete-profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/complete-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +281,7 @@ const OnboardingForm = () => {
                   htmlFor='gstin'
                   className='block text-sm font-medium text-gray-700 font-geist mb-2'
                 >
-                  GSTIN *
+                  GSTIN (Optional)
                 </label>
                 <input
                   type='text'
@@ -298,10 +294,9 @@ const OnboardingForm = () => {
                   pattern='[0-9A-Z]{15}'
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-geist text-black uppercase'
                   style={{ textTransform: 'uppercase' }}
-                  required
                 />
                 <p className='text-xs text-gray-500 mt-1 font-geist'>
-                  15-character alphanumeric code issued by Income Tax Department
+                  15-character alphanumeric code issued by Income Tax Department (Optional for small businesses)
                 </p>
               </div>
             )}

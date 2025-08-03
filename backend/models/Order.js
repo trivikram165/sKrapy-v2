@@ -37,9 +37,19 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'],
+    enum: ['pending', 'accepted', 'in_progress', 'payment_pending', 'completed', 'cancelled'],
     default: 'pending'
   },
+  rejectedVendors: [{
+    vendorId: {
+      type: String,
+      required: true
+    },
+    rejectedAt: {
+      type: Date,
+      required: true
+    }
+  }],
   acceptedAt: {
     type: Date,
     default: null
@@ -62,6 +72,39 @@ orderSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
+
+// Method to check if vendor can accept order (cooldown check)
+orderSchema.methods.canVendorAccept = function(vendorId) {
+  const rejection = this.rejectedVendors.find(r => r.vendorId === vendorId);
+  if (!rejection) return { canAccept: true, remainingTime: 0 };
+  
+  const cooldownTime = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const timeSinceRejection = Date.now() - rejection.rejectedAt.getTime();
+  
+  if (timeSinceRejection >= cooldownTime) {
+    return { canAccept: true, remainingTime: 0 };
+  }
+  
+  const remainingTimeSeconds = Math.ceil((cooldownTime - timeSinceRejection) / 1000); // in seconds
+  return { canAccept: false, remainingTime: remainingTimeSeconds };
+};
+
+// Method to add vendor to rejected list
+orderSchema.methods.rejectByVendor = function(vendorId) {
+  // Remove existing rejection if any (to update timestamp)
+  this.rejectedVendors = this.rejectedVendors.filter(r => r.vendorId !== vendorId);
+  
+  // Add new rejection
+  this.rejectedVendors.push({
+    vendorId: vendorId,
+    rejectedAt: new Date()
+  });
+  
+  // Reset vendor assignment and status
+  this.vendorId = null;
+  this.status = 'pending';
+  this.acceptedAt = null;
+};
 
 // Index for efficient queries
 orderSchema.index({ userId: 1, status: 1 });
