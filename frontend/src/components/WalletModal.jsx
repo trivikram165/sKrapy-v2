@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Wallet, Edit2, Save, AlertCircle } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import { ethers } from 'ethers';
 
 const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
   const { user } = useUser();
@@ -12,11 +13,145 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [tempAddress, setTempAddress] = useState('');
 
+  // Base network configuration and minimum balance requirement
+  const baseProvider = new ethers.JsonRpcProvider("https://sepolia.base.org");
+  const MINIMUM_ETH_BALANCE = 0.0015;
+  const [connectedAccount, setConnectedAccount] = useState(null);
+  const [hasMinimumBalance, setHasMinimumBalance] = useState(false);
+
+  // Base network configuration
+  const BASE_MAINNET_CHAIN_ID = "0x2105"; // Base mainnet chain ID (8453 in hex)
+
   useEffect(() => {
     if (isOpen && user) {
       loadWalletAddress();
     }
   }, [isOpen, user, userType]);
+
+  // Function to switch to Base Sepolia
+  const switchToBase = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }],
+      });
+      
+      // Wait a bit for the switch to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
+      console.log("Current chain ID:", chainId, "Expected:", BASE_SEPOLIA_CHAIN_ID);
+      
+      return chainId === BASE_SEPOLIA_CHAIN_ID;
+    } catch (error) {
+      console.log("Switch error:", error);
+      if (error.code === 4902) {
+        try {
+          console.log("Adding Base Sepolia network...");
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: BASE_SEPOLIA_CHAIN_ID,
+              chainName: "Base Sepolia",
+              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+              rpcUrls: ["https://sepolia.base.org"],
+              blockExplorerUrls: ["https://sepolia.basescan.org"],
+            }],
+          });
+          
+          // Wait a bit for the network to be added
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const chainId = await window.ethereum.request({ method: "eth_chainId" });
+          console.log("Chain ID after adding:", chainId);
+          
+          return chainId === BASE_SEPOLIA_CHAIN_ID;
+        } catch (addError) {
+          console.error("Error adding Base Sepolia network:", addError);
+          return false;
+        }
+      } else {
+        console.error("Error switching to Base Sepolia:", error);
+        return false;
+      }
+    }
+  };
+
+  // Function to connect wallet and check balance
+  const connectAndCheckBalance = async () => {
+    try {
+      if (!window.ethereum) {
+        alert("No wallet detected. Please install MetaMask or another Web3 wallet.");
+        return;
+      }
+
+      setIsLoading(true);
+      
+      // Switch to Base Sepolia network
+      const switchSuccess = await switchToBase();
+      if (!switchSuccess) {
+        // Don't stop the process, just warn the user
+        console.warn("Could not automatically switch to Base Sepolia. Continuing anyway...");
+      }
+
+      // Request account access
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const connectedAddress = accounts[0];
+      
+      // Create provider and check network
+      const walletProvider = new ethers.BrowserProvider(window.ethereum);
+      const network = await walletProvider.getNetwork();
+      
+      console.log("Connected to network:", network.chainId.toString());
+      
+      // Allow connection even if not on Base Sepolia, but warn user
+      if (network.chainId !== BigInt(84532)) {
+        console.warn(`Not on Base Sepolia (84532), currently on: ${network.chainId.toString()}`);
+        // Don't block the connection, just proceed
+      }
+
+      setConnectedAccount(`${connectedAddress.slice(0, 6)}...${connectedAddress.slice(-4)}`);
+      
+      // Check ETH balance
+      await checkETHBalance(connectedAddress);
+      
+      // Set the connected address as temp address for editing
+      setTempAddress(connectedAddress);
+      setIsEditing(true);
+      
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
+      alert("Failed to connect wallet. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to check ETH balance on Base network
+  const checkETHBalance = async (address) => {
+    try {
+      setIsLoading(true);
+      
+      // Get balance from Base network
+      const balance = await baseProvider.getBalance(address);
+      const formattedBalance = ethers.formatEther(balance);
+      const balanceNumber = parseFloat(formattedBalance);
+      
+      setBalance(formattedBalance);
+      setHasMinimumBalance(balanceNumber >= MINIMUM_ETH_BALANCE);
+      
+      if (balanceNumber < MINIMUM_ETH_BALANCE) {
+        alert(`Insufficient balance. Minimum ${MINIMUM_ETH_BALANCE} ETH required on Base Sepolia. Current balance: ${formattedBalance} ETH`);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching ETH balance:', error);
+      setBalance('Error');
+      setHasMinimumBalance(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadWalletAddress = async () => {
     if (!user) return;
@@ -29,7 +164,8 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
       if (data.success && data.data && data.data.walletAddress) {
         setWalletAddress(data.data.walletAddress);
         setTempAddress(data.data.walletAddress);
-        fetchBalance(data.data.walletAddress);
+        // Check balance for existing wallet address
+        await checkETHBalance(data.data.walletAddress);
       } else {
         setIsEditing(true);
       }
@@ -43,22 +179,7 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
 
   const fetchBalance = async (address) => {
     if (!address) return;
-    
-    setIsLoading(true);
-    try {
-      // Simulate API call to fetch wallet balance
-      // In real implementation, you would call your blockchain API here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock balance data
-      const mockBalance = (Math.random() * 10).toFixed(4);
-      setBalance(mockBalance);
-    } catch (error) {
-      console.error('Error fetching balance:', error);
-      setBalance('Error');
-    } finally {
-      setIsLoading(false);
-    }
+    await checkETHBalance(address);
   };
 
   const handleSave = async () => {
@@ -78,6 +199,30 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
       return;
     }
 
+    // Check balance before saving
+    setIsLoading(true);
+    try {
+      const balance = await baseProvider.getBalance(tempAddress.trim());
+      const formattedBalance = ethers.formatEther(balance);
+      const balanceNumber = parseFloat(formattedBalance);
+      
+      console.log(`Balance check: ${formattedBalance} ETH, Minimum required: ${MINIMUM_ETH_BALANCE} ETH`);
+      
+      // Update balance state
+      setBalance(formattedBalance);
+      setHasMinimumBalance(balanceNumber >= MINIMUM_ETH_BALANCE);
+      
+      if (balanceNumber < MINIMUM_ETH_BALANCE) {
+        // Don't block saving, just warn
+        console.warn(`Low balance: ${formattedBalance} ETH. Minimum recommended: ${MINIMUM_ETH_BALANCE} ETH`);
+      }
+    } catch (error) {
+      console.error('Error checking balance:', error);
+      // Don't block saving due to balance check error
+      setBalance('Error checking balance');
+    }
+    setIsLoading(false);
+
     setIsSaving(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/${userType}`, {
@@ -96,6 +241,7 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
         setWalletAddress(tempAddress);
         setIsEditing(false);
         fetchBalance(tempAddress);
+        alert('Wallet address saved successfully!');
       } else {
         alert(data.message || 'Failed to save wallet address');
       }
@@ -138,6 +284,38 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
           </button>
         </div>
 
+        {/* Connect Wallet Button */}
+        {!connectedAccount && (
+          <div className="mb-6">
+            <button
+              onClick={connectAndCheckBalance}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center px-4 py-3 bg-[#8BC34A] text-white rounded-lg hover:bg-[#7CB342] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Connect Wallet
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Connected Account Display */}
+        {connectedAccount && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="text-sm text-green-700">
+              <strong>Connected:</strong> {connectedAccount}
+            </div>
+          </div>
+        )}
+
         {/* Wallet Address Section */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -155,7 +333,7 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={isSaving || !hasMinimumBalance}
                   className="flex items-center px-4 py-2 bg-[#8BC34A] text-white rounded-lg hover:bg-[#7CB342] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
@@ -201,12 +379,14 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
         {/* Balance Section */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Wallet Balance
+            ETH Balance (Base Sepolia)
           </label>
-          <div className="p-4 bg-gradient-to-r from-[#8BC34A] to-[#7CB342] rounded-lg text-white">
+          <div className={`p-4 rounded-lg text-white ${hasMinimumBalance ? 'bg-gradient-to-r from-[#8BC34A] to-[#7CB342]' : 'bg-gradient-to-r from-red-500 to-red-600'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm opacity-90">Total Balance</div>
+                <div className="text-sm opacity-90">
+                  {hasMinimumBalance ? 'Sufficient Balance' : `Minimum Required: ${MINIMUM_ETH_BALANCE} ETH`}
+                </div>
                 <div className="text-2xl font-bold">
                   {isLoading ? (
                     <div className="flex items-center">
@@ -223,17 +403,30 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
           </div>
         </div>
 
+        {/* Balance Warning */}
+        {!hasMinimumBalance && balance !== '0.00' && balance !== 'Error' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-red-700">
+                <p className="font-medium mb-1">Insufficient Balance!</p>
+                <p>You need at least {MINIMUM_ETH_BALANCE} ETH on Base Sepolia to use this wallet.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Info Message */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">
             <AlertCircle className="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-blue-700">
-              <p className="font-medium mb-1">Wallet Integration Benefits:</p>
+              <p className="font-medium mb-1">Base Sepolia Integration:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Secure and transparent payments</li>
-                <li>Fast transaction processing</li>
-                <li>Real-time balance tracking</li>
-                <li>Reduced payment disputes</li>
+                <li>Requires minimum {MINIMUM_ETH_BALANCE} ETH balance</li>
+                <li>Fast and low-cost transactions</li>
+                <li>Real-time balance verification</li>
+                <li>Secure wallet connection</li>
               </ul>
             </div>
           </div>

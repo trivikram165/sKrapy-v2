@@ -37,3 +37,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Hardhat-specific
+artifacts/
+cache/
+typechain/
+typechain-types/
+*.sol.ts
+*.dbg.json
+*.t.sol.js
+
+# Optional: ignore hardhat config override file if used
+hardhat.local.config.js
