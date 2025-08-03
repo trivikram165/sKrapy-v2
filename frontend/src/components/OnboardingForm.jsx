@@ -50,7 +50,7 @@ const OnboardingForm = () => {
     if (!user || !role) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/${role}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/${role}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -144,7 +144,7 @@ const OnboardingForm = () => {
     try {
       // First, ensure user exists in database
       console.log('Creating/updating user in database...');
-      const userCreationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/clerk-signup`, {
+      const userCreationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/clerk-signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ const OnboardingForm = () => {
 
       // Now complete the profile
       console.log('Completing profile...');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/complete-profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/complete-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
