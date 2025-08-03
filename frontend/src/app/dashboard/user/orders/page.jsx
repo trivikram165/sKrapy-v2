@@ -15,7 +15,7 @@ const UserOrders = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/user/${user.id}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/user/${user.id}`);
         const data = await response.json();
 
         if (data.success) {

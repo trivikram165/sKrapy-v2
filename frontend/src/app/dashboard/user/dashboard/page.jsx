@@ -283,7 +283,7 @@ const UserDashboard = () => {
     setIsSubmittingOrder(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

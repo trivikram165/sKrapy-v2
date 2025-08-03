@@ -17,7 +17,7 @@ const VendorOrders = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/vendor`);
         const data = await response.json();
 
         if (data.success) {
@@ -37,11 +37,11 @@ const VendorOrders = () => {
 
       try {
         // Fetch available orders in vendor's pincode
-        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/available/${vendorProfile.address.pincode}`);
+        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/available/${vendorProfile.address.pincode}`);
         const availableData = await availableResponse.json();
 
         // Fetch vendor's accepted orders
-        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/vendor/${user.id}`);
+        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/vendor/${user.id}`);
         const myData = await myResponse.json();
 
         // Combine both arrays
@@ -93,7 +93,7 @@ const VendorOrders = () => {
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/accept`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/accept`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ const VendorOrders = () => {
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
