@@ -15,11 +15,8 @@ const app = express();
 // Configure CORS for all environments
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log('CORS Origin Check:', origin);
-    
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('No origin - allowing request');
       return callback(null, true);
     }
     
@@ -30,15 +27,11 @@ const corsOptions = {
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
-    console.log('Allowed origins:', allowedOrigins);
-    
     if (allowedOrigins.includes(origin)) {
-      console.log('Origin allowed:', origin);
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
-      // Instead of blocking, let's allow it for now and log it
-      callback(null, true);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
