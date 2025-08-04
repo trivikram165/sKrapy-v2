@@ -333,7 +333,7 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
-                  disabled={isSaving || !hasMinimumBalance}
+                  disabled={isSaving}
                   className="flex items-center px-4 py-2 bg-[#8BC34A] text-white rounded-lg hover:bg-[#7CB342] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? (
