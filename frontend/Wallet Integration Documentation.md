@@ -22,7 +22,6 @@ This document details the Web3 wallet integration implemented in sKrapy-v2, focu
 - **Auto-connection Detection**: Automatically detects existing wallet connections
 - **Manual Disconnect**: Users can disconnect wallets with persistent state
 - **Network Switching**: Automatic Base Sepolia network switching
-- **Balance Validation**: Real-time ETH balance checking with minimum requirements
 - **Address Management**: Smart wallet address handling and storage
 
 ### User Experience Features
@@ -59,7 +58,6 @@ const connectAndCheckBalance = async () => {
   // Request wallet connection
   // Switch to Base Sepolia network
   // Update connection states
-  // Check ETH balance
   // Auto-save wallet address
 }
 
@@ -75,16 +73,6 @@ const checkWalletConnection = async () => {
   // Respect manual disconnect flag
   // Query MetaMask for accounts
   // Auto-connect if available and not manually disconnected
-}
-```
-
-#### Balance Validation
-```javascript
-const checkETHBalance = async (address) => {
-  // Connect to Base Sepolia RPC
-  // Get wallet balance
-  // Validate minimum requirements (0.0015 ETH)
-  // Show warnings for insufficient balance
 }
 ```
 
@@ -119,7 +107,6 @@ const BASE_SEPOLIA_CONFIG = {
 ### RPC Configuration
 ```javascript
 const baseProvider = new ethers.JsonRpcProvider("https://sepolia.base.org");
-const MINIMUM_ETH_BALANCE = 0.0015; // Minimum required balance
 ```
 
 ---
@@ -131,7 +118,6 @@ const MINIMUM_ETH_BALANCE = 0.0015; // Minimum required balance
 <WalletModal isOpen={boolean} onClose={function} userType="user|vendor">
   {/* Connection Status Section */}
   {/* Wallet Address Display/Input */}
-  {/* Balance Information */}
   {/* Connection/Disconnection Controls */}
   {/* Network Information */}
 </WalletModal>
@@ -141,11 +127,10 @@ const MINIMUM_ETH_BALANCE = 0.0015; // Minimum required balance
 1. **Not Connected**: Shows manual input field and connect button
 2. **Connected**: Shows connected address (non-editable) with disconnect option
 3. **Manually Disconnected**: Shows manual input, prevents auto-connection
-4. **Loading**: Shows spinner during connection/balance checks
+4. **Loading**: Shows spinner during connection checks
 
 ### Visual Indicators
 - **Connected Badge**: Green indicator showing wallet connection status
-- **Balance Status**: Color-coded balance display (green=sufficient, red=insufficient)
 - **Network Status**: Base Sepolia network confirmation
 - **Loading States**: Spinners for async operations
 
@@ -159,8 +144,6 @@ const [isWalletConnected, setIsWalletConnected] = useState(false);
 const [connectedAccount, setConnectedAccount] = useState(null);
 const [connectedWalletAddress, setConnectedWalletAddress] = useState('');
 const [walletAddress, setWalletAddress] = useState('');
-const [balance, setBalance] = useState('0.00');
-const [hasMinimumBalance, setHasMinimumBalance] = useState(false);
 const [isLoading, setIsLoading] = useState(false);
 const [manuallyDisconnected, setManuallyDisconnected] = useState(() => {
   return localStorage.getItem('wallet-manually-disconnected') === 'true';
@@ -207,8 +190,6 @@ alert(`Failed to connect wallet: ${error.message || 'Unknown error'}`);
 // RPC errors
 catch (error) {
   console.error("Error fetching ETH balance:", error);
-  setBalance("Error");
-  setHasMinimumBalance(false);
 }
 ```
 
@@ -261,12 +242,6 @@ if (tempAddress.length < 26 || tempAddress.length > 62) {
 - [ ] Connected address should take priority over manual entry
 - [ ] Address validation should prevent invalid inputs
 
-#### Balance Validation
-- [ ] Insufficient balance should show warning alert
-- [ ] Insufficient balance should display red warning box
-- [ ] Sufficient balance should show green success state
-- [ ] Balance errors should be handled gracefully
-
 #### Network Integration
 - [ ] Should auto-switch to Base Sepolia
 - [ ] Should handle network switch rejection gracefully
@@ -286,12 +261,6 @@ describe('Wallet Integration', () => {
     // Set manual disconnect flag
     // Trigger connection check
     // Assert no auto-connection
-  });
-
-  test('should validate minimum balance', async () => {
-    // Mock insufficient balance
-    // Trigger balance check
-    // Assert warning display
   });
 });
 ```
@@ -380,6 +349,15 @@ console.log('Network:', await window.ethereum?.request({ method: 'eth_chainId' }
 
 ---
 
+## v2.1 Updates
+
+- Removed balance validation from payment modal
+- Payment flow now only checks wallet address validity
+- Network switching and error handling improved
+- Documentation updated for new payment modal logic
+
+---
+
 **Last Updated**: August 4, 2025  
-**Version**: 2.0 (05-payment branch)  
+**Version**: 2.1 (05-payment branch)  
 **Component**: WalletModal.jsx

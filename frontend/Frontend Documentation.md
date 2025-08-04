@@ -1046,3 +1046,12 @@ const debugApiCall = async (endpoint, options) => {
 
 *Frontend Documentation Version: 1.0.0*  
 *Last Updated: August 3, 2025*
+
+# Changelog
+
+## v2.1 Navigation Improvements
+
+- Header navigation now uses smooth scrolling via JavaScript
+- Section IDs added to Prices, How We Work, and Why Us components
+- Navigation buttons scroll to correct sections on landing page
+- Mobile and desktop navigation fully supported

@@ -824,3 +824,10 @@ Import the following collection for comprehensive API testing:
 
 *Backend Documentation Version: 1.0.0*  
 *Last Updated: August 3, 2025*
+
+## v2.1 Endpoint Updates
+
+- GET /api/orders/:id now returns latest user wallet address from User model
+- Response structure: { success, data: { ...order, userWalletAddress } }
+- Frontend refreshes order after status change to get latest wallet address
+- Error handling and response documentation updated

@@ -965,3 +965,10 @@ For additional support or questions, refer to the inline code comments or create
 
 *Documentation Version: 1.0.0*  
 *Last Updated: August 3, 2025*
+
+## v2.1 Updates (August 2025)
+
+- Payment Modal: Removed balance checking for faster payments
+- Order Status: Automatic wallet address refresh when vendor starts work
+- Navigation: Header navigation now uses smooth scrolling and section IDs
+- Error Handling: Improved error handling for order status and payment failures

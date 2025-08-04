@@ -693,6 +693,15 @@ const filteredOrders = useMemo(() => {
 
 ---
 
+## v2.1 Order Refresh Feature
+
+- GET /api/orders/:id now fetches latest user wallet address
+- When vendor starts work, frontend refreshes order to get current wallet
+- Real-time updates ensure payment modal always shows latest wallet address
+- Error handling improved for missing or invalid wallet addresses
+
+---
+
 **Last Updated**: August 4, 2025  
 **Version**: 2.0 (05-payment branch)  
 **Features**: Order Cancellation, Vendor Filtering, Status Management

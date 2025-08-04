@@ -102,16 +102,7 @@ GET /api/orders/vendor/:vendorId - includes cancelled orders
 4. Address priority -> Connected address should override manual entry
 ```
 
-### 3. Balance Validation Testing
-```bash
-# Test Scenarios:
-1. Insufficient balance -> Should show warning alert and UI indicator
-2. Sufficient balance -> Should show green success state
-3. Balance errors -> Should handle network errors gracefully
-4. Cross-user consistency -> Same behavior for users and vendors
-```
-
-### 4. Order Cancellation Testing
+### 3. Order Cancellation Testing
 ```bash
 # User Testing:
 1. Create order -> Should allow cancellation
@@ -124,6 +115,13 @@ GET /api/orders/vendor/:vendorId - includes cancelled orders
 2. Filter cancelled -> Should show only user-cancelled orders
 3. Order status -> Should display "cancelled by user" correctly
 ```
+
+## v2.1 Payment Flow Changes
+
+- Balance check removed from payment modal for faster UX
+- Payment modal now only validates wallet addresses and order status
+- When vendor clicks 'Start', customer wallet address is refreshed automatically
+- Error handling improved for payment failures and missing wallet addresses
 
 ## Error Handling
 
