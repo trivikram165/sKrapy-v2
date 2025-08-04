@@ -20,7 +20,7 @@ const WalletModal = ({ isOpen, onClose, userType = 'user' }) => {
   const [hasMinimumBalance, setHasMinimumBalance] = useState(false);
 
   // Base network configuration
-  const BASE_MAINNET_CHAIN_ID = "0x2105"; // Base mainnet chain ID (8453 in hex)
+  const BASE_SEPOLIA_CHAIN_ID = "84532"; // Base mainnet chain ID (8453 in hex)
 
   useEffect(() => {
     if (isOpen && user) {

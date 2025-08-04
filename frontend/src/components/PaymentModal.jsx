@@ -11,7 +11,7 @@ const contractABI = SkrapContractArtifact.abi;
 
 
 const TOKEN_ADDRESSES = {
-  // usdt: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // Replace with Base chain address
+  usdt: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // Replace with Base chain address
   usdc: '0x036cbd53842c5426634e7929541ec2318f3dcf7e'  // Replace with Base chain address
 };
 
@@ -34,7 +34,7 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
     if (!user || !address.trim()) return;
     setIsSavingWallet(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/vendor`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/vendor`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address })
