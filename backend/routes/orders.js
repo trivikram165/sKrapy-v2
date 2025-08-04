@@ -29,6 +29,7 @@ router.post('/', async (req, res) => {
     const order = await Order.create({
       orderNumber,
       userId,
+      userWalletAddress: user.walletAddress,
       userAddress: user.address,
       items: items.map(item => ({
         id: item.id,

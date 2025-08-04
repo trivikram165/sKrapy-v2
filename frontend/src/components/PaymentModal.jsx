@@ -1,7 +1,19 @@
+// ✅ Updated PaymentModal with SkrapContract integrated (sendNative & sendERC20)
+
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Wallet, AlertCircle, Check } from 'lucide-react';
+import { X, Wallet, AlertCircle } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import { ethers } from 'ethers';
+import SkrapContractArtifact from '../app/abi/SkrapContractABI.json'; // Ensure correct path
+const CONTRACT_ADDRESS = '0x7238567BFEbFD3837cFb8c4fA07AA61E04910061';
+const contractABI = SkrapContractArtifact.abi;
+
+
+const TOKEN_ADDRESSES = {
+  usdt: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // Replace with Base chain address
+  usdc: '0x036cbd53842c5426634e7929541ec2318f3dcf7e'  // Replace with Base chain address
+};
 
 const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
   const { user } = useUser();
@@ -15,28 +27,18 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
   const currencies = [
     { id: 'eth', name: 'Ethereum', symbol: 'ETH', icon: '⟠' },
     { id: 'usdt', name: 'Tether', symbol: 'USDT', icon: '₮' },
-    { id: 'usdc', name: 'USD Coin', symbol: 'USDC', icon: '$' }
+    { id: 'usdc', name: 'USD Coin', symbol: '$', icon: '$' }
   ];
 
-  // Auto-save vendor wallet address with debouncing
   const saveWalletAddress = useCallback(async (address) => {
     if (!user || !address.trim()) return;
-
     setIsSavingWallet(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/vendor`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/vendor`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ walletAddress: address }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address })
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save wallet address');
-      }
-
-      console.log('Vendor wallet address auto-saved successfully');
     } catch (error) {
       console.error('Error saving wallet address:', error);
     } finally {
@@ -44,67 +46,75 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
     }
   }, [user]);
 
-  // Debounced auto-save effect
   useEffect(() => {
     if (!vendorAddress.trim()) return;
-    
     const timeoutId = setTimeout(() => {
       saveWalletAddress(vendorAddress);
-    }, 1000); // Save after 1 second of no typing
-
+    }, 1000);
     return () => clearTimeout(timeoutId);
   }, [vendorAddress, saveWalletAddress]);
 
   useEffect(() => {
     if (isOpen && order) {
       setConfirmAmount(order.totalAmount?.toString() || '');
-      // Use userWalletAddress from the order data fetched from database
       setVendorAddress(vendorWalletAddress || '');
     }
   }, [isOpen, order, vendorWalletAddress]);
 
   const validateForm = () => {
     const newErrors = {};
-
     if (!confirmAmount || parseFloat(confirmAmount) !== parseFloat(order?.totalAmount || 0)) {
       newErrors.amount = 'Confirm amount must match the order amount exactly';
     }
-
     if (!vendorAddress.trim()) {
       newErrors.vendorAddress = 'Vendor wallet address is required';
     } else if (vendorAddress.length < 26 || vendorAddress.length > 62) {
       newErrors.vendorAddress = 'Invalid wallet address format';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handlePayment = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
+    if (!window.ethereum) return alert('MetaMask not found');
 
     setIsProcessing(true);
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send('eth_requestAccounts', []);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+      const customerWallet = order.userWalletAddress;
 
-      // Here you would integrate with your payment processing logic
-      console.log('Processing payment:', {
-        orderId: order._id,
-        amount: confirmAmount,
-        currency: selectedCurrency,
-        fromAddress: vendorAddress,
-        toAddress: order.userWalletAddress,
-        orderNumber: order.orderNumber
-      });
+      if (!ethers.utils.isAddress(customerWallet)) throw new Error('Invalid customer wallet');
 
-      alert('Payment processed successfully!');
+      if (selectedCurrency === 'eth') {
+        const tx = await contract.sendNative(customerWallet, {
+          value: ethers.utils.parseEther(confirmAmount)
+        });
+        await tx.wait();
+      } else {
+        const tokenAddress = TOKEN_ADDRESSES[selectedCurrency];
+        if (!ethers.utils.isAddress(tokenAddress)) throw new Error('Invalid token address');
+
+        const tokenContract = new ethers.Contract(tokenAddress, [
+          'function approve(address spender, uint256 amount) public returns (bool)'
+        ], signer);
+
+        const amountInWei = ethers.utils.parseUnits(confirmAmount, 18);
+        const approveTx = await tokenContract.approve(CONTRACT_ADDRESS, amountInWei);
+        await approveTx.wait();
+
+        const tx = await contract.sendERC20(tokenAddress, customerWallet, amountInWei);
+        await tx.wait();
+      }
+
+      alert('Payment sent successfully!');
       onClose();
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
+      alert('Payment failed: ' + (error.message || 'Unknown error'));
     } finally {
       setIsProcessing(false);
     }

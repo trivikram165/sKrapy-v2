@@ -122,6 +122,14 @@ const VendorOrders = () => {
   const handleAcceptOrder = async (orderNumber) => {
     const order = orders.find(o => o.orderNumber === orderNumber);
     if (!order) return;
+    
+    console.log('Accepting order:', order); // Debug log
+
+    if (!order.orderId) {
+      console.error('No order ID found for order:', order);
+      alert('Error: Could not find order ID');
+      return;
+    }
 
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/accept`, {
