@@ -83,7 +83,7 @@ const WalletModal = ({ isOpen, onClose, userType = "user" }) => {
     setIsSaving(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/users/wallet/${user.id}/${userType}`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://skrapy-backend.onrender.com"}/api/users/wallet/${user.id}/${userType}`,
         {
           method: "PUT",
           headers: {
@@ -293,7 +293,7 @@ const WalletModal = ({ isOpen, onClose, userType = "user" }) => {
     try {
       const response = await fetch(
         `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+          process.env.NEXT_PUBLIC_API_URL || "https://skrapy-backend.onrender.com"
         }/api/users/wallet/${user.id}/${userType}`
       );
       const data = await response.json();
@@ -370,7 +370,7 @@ const WalletModal = ({ isOpen, onClose, userType = "user" }) => {
     try {
       const response = await fetch(
         `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+          process.env.NEXT_PUBLIC_API_URL || "https://skrapy-backend.onrender.com"
         }/api/users/wallet/${user.id}/${userType}`,
         {
           method: "PUT",

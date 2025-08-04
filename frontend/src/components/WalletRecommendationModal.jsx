@@ -10,7 +10,7 @@ const WalletRecommendationModal = ({ isOpen, onClose, userType = 'user' }) => {
   const handleClose = async () => {
     if (dontShowAgain && user) {
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet-reminder/${user.id}/${userType}`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet-reminder/${user.id}/${userType}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
