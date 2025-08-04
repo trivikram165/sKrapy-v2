@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Host
+Host: https://skrapy.com
+
+# Sitemaps
+Sitemap: https://skrapy.com/sitemap.xml
