@@ -151,7 +151,7 @@ Backend API runs at `http://localhost:3001/api`
 - **User Profile**
   - Must include full address, city, state, pincode
 - **Vendor Profile**
-  - Additional fields: business name, valid 15-character GSTIN
+  - Additional fields: business name (required), GSTIN (optional, must be 15 characters if provided)
 - **Orders**
   - Items array, pickupDate, and address required
   - Cannot skip order workflow stages

@@ -30,10 +30,26 @@ const OnboardingForm = () => {
       let role = roleFromUrl || user.publicMetadata?.role || user.unsafeMetadata?.role;
       
       if (!role) {
+        // Check localStorage for role preferences
+        const selectedRole = localStorage.getItem('selectedRole');
+        const storedRole = localStorage.getItem('userRole');
         const lastDashboard = localStorage.getItem('lastDashboard');
-        if (lastDashboard?.includes('vendor')) {
-          role = 'vendor';
-        } else {
+        
+        console.log('OnboardingForm: Checking localStorage for role:', { selectedRole, storedRole, lastDashboard });
+        
+        // Priority: selectedRole > storedRole > lastDashboard path analysis
+        role = selectedRole || storedRole;
+        
+        if (!role && lastDashboard) {
+          if (lastDashboard.includes('vendor')) {
+            role = 'vendor';
+          } else {
+            role = 'user';
+          }
+        }
+        
+        // If still no role, default to user
+        if (!role) {
           role = 'user';
         }
       }
@@ -50,7 +66,7 @@ const OnboardingForm = () => {
     if (!user || !role) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/${role}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/${role}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -144,7 +160,7 @@ const OnboardingForm = () => {
     try {
       // First, ensure user exists in database
       console.log('Creating/updating user in database...');
-      const userCreationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/clerk-signup`, {
+      const userCreationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/clerk-signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +180,7 @@ const OnboardingForm = () => {
 
       // Now complete the profile
       console.log('Completing profile...');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/complete-profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/complete-profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

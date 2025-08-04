@@ -198,13 +198,15 @@ const DashboardUser = () => {
                           order.status === 'in_progress' ? 'bg-orange-100 text-orange-800' :
                           order.status === 'payment_pending' ? 'bg-purple-100 text-purple-800' :
                           order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'cancelled_by_user' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {order.status === 'pending' ? 'Pending' :
                            order.status === 'accepted' ? 'Accepted' :
                            order.status === 'in_progress' ? 'In Progress' :
                            order.status === 'payment_pending' ? 'Payment Pending' :
-                           order.status === 'completed' ? 'Completed' : order.status}
+                           order.status === 'completed' ? 'Completed' : 
+                           order.status === 'cancelled_by_user' ? 'Cancelled' : order.status}
                         </span>
                       </div>
                     </div>

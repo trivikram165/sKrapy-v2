@@ -22,14 +22,19 @@
 - **Dual Role System**: Users (scrap sellers) and Vendors (scrap collectors)
 - **Authentication**: Clerk-based authentication with webhook integration
 - **Order Management**: Complete lifecycle from creation to completion
+- **Order Cancellation**: Users can cancel orders before payment with vendor filtering
 - **Vendor Workflow**: Accept → Start → Pay → Completed
+- **Crypto Wallet Integration**: MetaMask wallet connection and management
+- **Blockchain Integration**: Base Sepolia network with balance validation
 - **Profile Validation**: Business information validation for vendors
 - **Cart System**: Multi-item scrap collection orders
 - **Real-time Updates**: Order status tracking and notifications
+- **Wallet Address Management**: Auto-population and persistent connection state
 
 ### Tech Stack
 - **Frontend**: Next.js 15, React 19, Tailwind CSS, Clerk Auth
 - **Backend**: Node.js, Express.js, MongoDB, Mongoose
+- **Blockchain**: ethers.js, Base Sepolia Network, MetaMask Integration
 - **Authentication**: Clerk with webhook integration
 - **Database**: MongoDB Atlas with compound indexing
 - **Deployment**: Vercel (Frontend), Render (Backend)
@@ -146,7 +151,15 @@ CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
   }],
   totalEstimatedPrice: Number,  // Total order value
   actualPrice: Number,          // Final price (set by vendor)
-  status: String,               // Order status
+  status: String,               // Order status: 'pending', 'accepted', 'in_progress', 'payment_pending', 'completed', 'cancelled', 'cancelled_by_user'
+  cancelledBy: String,          // Who cancelled: 'user' or 'vendor'
+  cancelledAt: Date,            // When order was cancelled
+  cancellationReason: String,   // Reason for cancellation
+  rejectedVendors: [{           // Vendors who rejected this order
+    vendorId: ObjectId,
+    rejectedAt: Date
+  }],
+  hiddenFromVendors: [ObjectId],// Vendors who have hidden this order
   pickupAddress: {              // Pickup location
     fullAddress: String,
     city: String,
@@ -213,7 +226,7 @@ CLERK_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
 
 #### Profile Validation
 - **All Users**: fullAddress, city, state, pincode required
-- **Vendors**: businessName, gstin additionally required
+- **Vendors**: businessName required, gstin optional
 - **GSTIN Format**: Exactly 15 alphanumeric characters
 - **Pincode Format**: Exactly 6 digits
 
@@ -633,7 +646,10 @@ PUT /api/orders/:orderId/complete
 - Response: { success: true, order: {...} }
 
 PUT /api/orders/:orderId/cancel
+- Purpose: Cancel order by user (only before payment)
 - Body: { reason?: string }
+- Authorization: Only order owner can cancel
+- Restrictions: Cannot cancel paid/completed orders
 - Response: { success: true, order: {...} }
 ```
 

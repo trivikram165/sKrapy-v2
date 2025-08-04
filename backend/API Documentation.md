@@ -459,6 +459,49 @@ PUT /api/orders/64ghi789jkl012345/start
 }
 ```
 
+#### Cancel Order (User)
+```http
+PUT /api/orders/64ghi789jkl012345/cancel
+Content-Type: application/json
+
+{
+  "reason": "Changed my mind about selling these items"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "order": {
+    "_id": "64ghi789jkl012345",
+    "orderNumber": "ORD-1722691800123-001",
+    "status": "cancelled_by_user",
+    "cancelledBy": "user",
+    "cancelledAt": "2025-08-04T12:00:00.000Z",
+    "cancellationReason": "Changed my mind about selling these items",
+    "timestamps": {
+      "created": "2025-08-03T10:30:00.000Z",
+      "accepted": "2025-08-03T11:00:00.000Z"
+    }
+  }
+}
+```
+
+**Error Response (Cannot Cancel):**
+```json
+{
+  "success": false,
+  "message": "Order cannot be cancelled after payment"
+}
+```
+
+**Cancellation Rules:**
+- Users can only cancel their own orders
+- Orders can be cancelled in status: `pending`, `accepted`, `in_progress`
+- Orders cannot be cancelled in status: `payment_pending`, `completed`, `cancelled`, `cancelled_by_user`
+- Cancellation reason is optional but recommended for analytics
+
 #### Get User's Orders
 ```http
 GET /api/orders/user/64abc123def456789
@@ -666,7 +709,7 @@ svix-timestamp: 1722691800
 - **address**: All fields required when provided
 - **pincode**: Exactly 6 digits
 - **businessName**: Required for vendors
-- **gstin**: Required for vendors, exactly 15 alphanumeric characters
+- **gstin**: Optional for vendors, if provided must be exactly 15 alphanumeric characters
 
 ### Order Validation
 - **items**: At least one item required

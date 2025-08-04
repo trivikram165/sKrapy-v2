@@ -90,16 +90,34 @@ const AuthWrapper = ({ children }) => {
             }
           }
           
-          // If still no role found, default to user for profile check
+          // If still no role found, check if user is currently on a specific dashboard path
           if (!userRole) {
-            userRole = 'user';
-            console.log('AuthWrapper: No role found anywhere, defaulting to user for profile check');
+            if (pathname.includes('/dashboard/vendor')) {
+              userRole = 'vendor';
+              console.log('AuthWrapper: No role found, using vendor based on current path');
+            } else if (pathname.includes('/dashboard/user')) {
+              userRole = 'user';
+              console.log('AuthWrapper: No role found, using user based on current path');
+            } else {
+              // If on onboarding or other pages, try to get role from URL params
+              const urlParams = new URLSearchParams(window.location.search);
+              const roleFromUrl = urlParams.get('role');
+              if (roleFromUrl) {
+                userRole = roleFromUrl;
+                console.log('AuthWrapper: Using role from URL params:', roleFromUrl);
+              } else {
+                // Last resort: redirect to dashboard for role selection
+                console.log('AuthWrapper: No role found anywhere, redirecting to dashboard for selection');
+                router.push('/dashboard/user'); // Default to user dashboard for selection
+                return;
+              }
+            }
           }
         }
 
         console.log('AuthWrapper: Using role for profile check:', userRole, 'on path:', pathname);
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/${userRole}`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/${userRole}`;
         console.log('AuthWrapper: Making API call to:', apiUrl);
         
         const response = await fetch(apiUrl);

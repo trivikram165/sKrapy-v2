@@ -54,11 +54,11 @@ const userSchema = new mongoose.Schema({
   },
   gstin: {
     type: String,
-    required: function() { return this.role === 'vendor' && this.profileCompleted; },
+    required: false, // GSTIN is optional for vendors
     validate: {
       validator: function(v) {
         // Only validate GSTIN format if it's provided and user is a vendor
-        if (this.role === 'vendor' && v) {
+        if (this.role === 'vendor' && v && v.trim()) {
           return /^[0-9A-Z]{15}$/.test(v);
         }
         return true;
