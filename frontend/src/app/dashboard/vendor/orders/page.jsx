@@ -58,66 +58,67 @@ const VendorOrders = () => {
     fetchVendorProfile();
   }, [user]);
 
+  const fetchOrders = async () => {
+    if (!user || !vendorProfile) return;
+
+    try {
+      setLoading(true);
+      // Fetch available orders in vendor's pincode with cooldown info
+      const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
+      const availableData = await availableResponse.json();
+
+      // Fetch vendor's accepted orders
+      const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/vendor/${user.id}`);
+      const myData = await myResponse.json();
+
+      // Combine both arrays
+      const allOrders = [
+        ...(availableData.success ? availableData.data : []),
+        ...(myData.success ? myData.data : [])
+      ];
+
+      // Transform orders to match the original format
+      const transformedOrders = allOrders.map(order => ({
+        orderNumber: order.orderNumber || order._id.slice(-6),
+        name: order.userName || `User ${order.userId.slice(-4)}`, // Use actual user name from backend
+        location: `${order.userAddress.fullAddress}, ${order.userAddress.city} ${order.userAddress.pincode}`,
+        date: new Date(order.createdAt).toLocaleDateString('en-GB'),
+        time: new Date(order.createdAt).toLocaleTimeString('en-GB', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        orderSummary: order.items.map(item => `${item.quantity}${item.unit} ${item.name}`),
+        status: order.status === 'cancelled_by_user' ? 'Cancelled by User' :
+          order.vendorId ? 
+          (order.status === 'accepted' ? 'Accepted' : 
+           order.status === 'in_progress' ? 'In Progress' : 
+           order.status === 'payment_pending' ? 'Payment Pending' : 
+           order.status === 'completed' ? 'Completed' : 'Accepted') : 'Pending',
+        action: order.status === 'cancelled_by_user' ? 'Cancelled' :
+          order.vendorId ? 
+          (order.status === 'accepted' ? 'Start' : 
+           order.status === 'in_progress' ? 'Pay' : 
+           order.status === 'payment_pending' ? 'Awaiting Payment' : 
+           order.status === 'completed' ? 'Completed' : 'Accept') : 'Accept',
+        orderId: order._id,
+        totalAmount: order.totalAmount,
+        totalItems: order.totalItems,
+        vendorId: order.vendorId,
+        userWalletAddress: order.userWalletAddress,
+        canAccept: order.canAccept !== undefined ? order.canAccept : true,
+        remainingCooldown: order.remainingCooldown || 0
+      }));
+
+      setOrders(transformedOrders);
+    } catch (error) {
+      console.error('Fetch orders error:', error);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user || !vendorProfile) return;
-
-      try {
-        // Fetch available orders in vendor's pincode with cooldown info
-        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
-        const availableData = await availableResponse.json();
-
-        // Fetch vendor's accepted orders
-        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/vendor/${user.id}`);
-        const myData = await myResponse.json();
-
-        // Combine both arrays
-        const allOrders = [
-          ...(availableData.success ? availableData.data : []),
-          ...(myData.success ? myData.data : [])
-        ];
-
-        // Transform orders to match the original format
-        const transformedOrders = allOrders.map(order => ({
-          orderNumber: order.orderNumber || order._id.slice(-6),
-          name: order.userName || `User ${order.userId.slice(-4)}`, // Use actual user name from backend
-          location: `${order.userAddress.fullAddress}, ${order.userAddress.city} ${order.userAddress.pincode}`,
-          date: new Date(order.createdAt).toLocaleDateString('en-GB'),
-          time: new Date(order.createdAt).toLocaleTimeString('en-GB', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          orderSummary: order.items.map(item => `${item.quantity}${item.unit} ${item.name}`),
-          status: order.status === 'cancelled_by_user' ? 'Cancelled by User' :
-            order.vendorId ? 
-            (order.status === 'accepted' ? 'Accepted' : 
-             order.status === 'in_progress' ? 'In Progress' : 
-             order.status === 'payment_pending' ? 'Payment Pending' : 
-             order.status === 'completed' ? 'Completed' : 'Accepted') : 'Pending',
-          action: order.status === 'cancelled_by_user' ? 'Cancelled' :
-            order.vendorId ? 
-            (order.status === 'accepted' ? 'Start' : 
-             order.status === 'in_progress' ? 'Pay' : 
-             order.status === 'payment_pending' ? 'Awaiting Payment' : 
-             order.status === 'completed' ? 'Completed' : 'Accept') : 'Accept',
-          orderId: order._id,
-          totalAmount: order.totalAmount,
-          totalItems: order.totalItems,
-          vendorId: order.vendorId,
-          userWalletAddress: order.userWalletAddress,
-          canAccept: order.canAccept !== undefined ? order.canAccept : true,
-          remainingCooldown: order.remainingCooldown || 0
-        }));
-
-        setOrders(transformedOrders);
-      } catch (error) {
-        console.error('Fetch orders error:', error);
-        setError('Something went wrong. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, [user, vendorProfile]);
 
@@ -221,24 +222,81 @@ const VendorOrders = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Update the order status locally
-        setOrders(prev => prev.map(o => 
-          o.orderNumber === orderNumber 
-            ? { 
-                ...o, 
-                status: newStatus === 'in_progress' ? 'In Progress' : 
-                        newStatus === 'payment_pending' ? 'Payment Pending' : 'Completed',
-                action: newStatus === 'in_progress' ? 'Pay' : 
-                        newStatus === 'payment_pending' ? 'Awaiting Payment' : 'Completed'
-              }
-            : o
-        ));
+        // If starting work (changing to in_progress), refresh order details to get latest customer wallet
+        if (newStatus === 'in_progress') {
+          await refreshOrderDetails(order.orderId, orderNumber);
+        } else {
+          // Update the order status locally
+          setOrders(prev => prev.map(o => 
+            o.orderNumber === orderNumber 
+              ? { 
+                  ...o, 
+                  status: newStatus === 'in_progress' ? 'In Progress' : 
+                          newStatus === 'payment_pending' ? 'Payment Pending' : 'Completed',
+                  action: newStatus === 'in_progress' ? 'Pay' : 
+                          newStatus === 'payment_pending' ? 'Awaiting Payment' : 'Completed'
+                }
+              : o
+          ));
+        }
       } else {
         alert(data.message || 'Failed to update order status');
       }
     } catch (error) {
       console.error('Update order status error:', error);
       alert('Something went wrong. Please try again.');
+    }
+  };
+
+  // Function to refresh specific order details
+  const refreshOrderDetails = async (orderId, orderNumber) => {
+    try {
+      console.log('Refreshing order details for:', orderId, orderNumber);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${orderId}`);
+      const data = await response.json();
+      
+      console.log('API Response:', data);
+      
+      if (data.success && data.data) {
+        const updatedOrder = data.data; // Backend returns data.data, not data.order
+        console.log('Updated order:', updatedOrder);
+        console.log('User wallet address:', updatedOrder.userWalletAddress);
+        
+        setOrders(prev => prev.map(o => 
+          o.orderNumber === orderNumber 
+            ? { 
+                ...o,
+                userWalletAddress: updatedOrder.userWalletAddress || o.userWalletAddress, // Refresh wallet address or keep existing
+                status: 'In Progress',
+                action: 'Pay'
+              }
+            : o
+        ));
+      } else {
+        // If API call fails, just update status locally
+        console.log('Failed to fetch updated order details, updating status only');
+        setOrders(prev => prev.map(o => 
+          o.orderNumber === orderNumber 
+            ? { 
+                ...o,
+                status: 'In Progress',
+                action: 'Pay'
+              }
+            : o
+        ));
+      }
+    } catch (error) {
+      console.error('Error refreshing order details:', error);
+      // If there's an error, just update status locally
+      setOrders(prev => prev.map(o => 
+        o.orderNumber === orderNumber 
+          ? { 
+              ...o,
+              status: 'In Progress',
+              action: 'Pay'
+            }
+          : o
+      ));
     }
   };
 
@@ -718,6 +776,7 @@ const VendorOrders = () => {
         onClose={() => setIsPaymentModalOpen(false)} 
         order={selectedOrder}
         vendorWalletAddress={selectedOrder?.vendorWalletAddress || ''}
+        onSuccess={fetchOrders}
       />
 
       {/* Wallet Modal */}

@@ -558,7 +558,7 @@ const ElectronicWaste = () => {
 // Main Page Component
 const ScrapPricingPage = () => {
   return (
-    <div className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
+    <div id="prices" className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
       <div className='max-w-6xl mx-auto'>
         <Header />
 

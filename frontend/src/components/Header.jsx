@@ -12,6 +12,16 @@ const Header = () => {
   const closeModal = () => {
     setIsModalOpen(false);
   };
+
+  const scrollToSection = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
   return (
     <header className="w-full sticky top-0 z-50">
       {/* Blurred top section */}
@@ -31,10 +41,10 @@ const Header = () => {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-10 font-medium text-gray-800">
-            <a href="#" className="hover:text-[#7CB342] transition-colors">Home</a>
-            <a href="#prices" className="hover:text-[#7CB342] transition-colors">Our Prices</a>
-            <a href="#services" className="hover:text-[#7CB342] transition-colors">Services</a>
-            <a href="#why-us" className="hover:text-[#7CB342] transition-colors">Why Us</a>
+            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-[#7CB342] transition-colors">Home</button>
+            <button onClick={() => scrollToSection('prices')} className="hover:text-[#7CB342] transition-colors">Our Prices</button>
+            <button onClick={() => scrollToSection('services')} className="hover:text-[#7CB342] transition-colors">How We Work</button>
+            <button onClick={() => scrollToSection('why-us')} className="hover:text-[#7CB342] transition-colors">Why Us</button>
           </nav>
 
           {/* Button */}

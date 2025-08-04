@@ -8,15 +8,18 @@ import SkrapContractArtifact from '../app/abi/SkrapContractABI.json';
 const CONTRACT_ADDRESS = '0x7238567BFEbFD3837cFb8c4fA07AA61E04910061';
 const contractABI = SkrapContractArtifact.abi;
 
+// Base Sepolia testnet token addresses
 const TOKEN_ADDRESSES = {
-  usdt: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-  usdc: '0x036cbd53842c5426634e7929541ec2318f3dcf7e'
+  // Note: These are example addresses - replace with actual Base Sepolia testnet token addresses
+  // For now, we'll disable token payments until proper testnet addresses are configured
+  usdt: null, // "0x..." // Base Sepolia USDT address (when available)
+  usdc: null, // "0x..." // Base Sepolia USDC address (when available)
 };
 
 // Base Sepolia configuration
 const BASE_SEPOLIA_CHAIN_ID = "0x14a34"; // 84532 in hex
 
-const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
+const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress, onSuccess }) => {
   const { user } = useUser();
   const [selectedCurrency, setSelectedCurrency] = useState('eth');
   const [vendorAddress, setVendorAddress] = useState(vendorWalletAddress || '');
@@ -35,6 +38,8 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
   const [transactionHash, setTransactionHash] = useState('');
   const [paymentDetails, setPaymentDetails] = useState(null);
 
+
+  // For now, only show ETH until we have proper testnet token addresses
   const currencies = [
     { 
       id: 'eth', 
@@ -42,21 +47,22 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
       symbol: 'ETH', 
       icon: '⟠',
       color: 'bg-blue-500'
-    },
-    { 
-      id: 'usdt', 
-      name: 'Tether', 
-      symbol: 'USDT', 
-      icon: '₮',
-      color: 'bg-green-500'
-    },
-    { 
-      id: 'usdc', 
-      name: 'USD Coin', 
-      symbol: 'USDC', 
-      icon: '$',
-      color: 'bg-purple-500'
     }
+    // Temporarily disabled until we have Base Sepolia testnet addresses
+    // { 
+    //   id: 'usdt', 
+    //   name: 'Tether', 
+    //   symbol: 'USDT', 
+    //   icon: '₮',
+    //   color: 'bg-green-500'
+    // },
+    // { 
+    //   id: 'usdc', 
+    //   name: 'USD Coin', 
+    //   symbol: 'USDC', 
+    //   icon: '$',
+    //   color: 'bg-purple-500'
+    // }
   ];
 
   // Fetch exchange rates (you can replace with real API)
@@ -83,6 +89,8 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
     const cryptoValue = inrAmount / rate;
     setCryptoAmount(cryptoValue.toFixed(6));
   };
+
+
 
   // Switch to Base Sepolia network
   const switchToBaseSepolia = async () => {
@@ -212,10 +220,13 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
         // First approve the token transfer
         const tokenContract = new ethers.Contract(tokenAddress, [
           'function approve(address spender, uint256 amount) returns (bool)',
-          'function allowance(address owner, address spender) view returns (uint256)'
+          'function allowance(address owner, address spender) view returns (uint256)',
+          'function decimals() view returns (uint8)'
         ], signer);
 
-        const tokenAmount = ethers.parseUnits(cryptoAmount, 18);
+        // Get the correct decimals for the token
+        const decimals = await tokenContract.decimals();
+        const tokenAmount = ethers.parseUnits(cryptoAmount, decimals);
         
         // Check current allowance
         const currentAllowance = await tokenContract.allowance(await signer.getAddress(), CONTRACT_ADDRESS);
@@ -229,6 +240,28 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
       }
 
       const receipt = await tx.wait();
+      
+      // Update order status to completed after successful payment
+      try {
+        const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'completed'
+          }),
+        });
+
+        const statusData = await statusResponse.json();
+        if (!statusData.success) {
+          console.error('Failed to update order status:', statusData.message);
+          // Don't fail the payment process, just log the error
+        }
+      } catch (statusError) {
+        console.error('Error updating order status:', statusError);
+        // Don't fail the payment process, just log the error
+      }
       
       // Set payment details for success modal
       setPaymentDetails({
@@ -253,6 +286,12 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
     setShowSuccessModal(false);
     setPaymentDetails(null);
     setTransactionHash('');
+    
+    // Call onSuccess callback to refresh the orders list
+    if (onSuccess) {
+      onSuccess();
+    }
+    
     onClose();
   };
 
@@ -273,27 +312,27 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
             <h2 className="text-2xl font-bold text-gray-900 font-geist mb-2">
               Payment Successful!
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-black mb-6">
               Your payment has been processed successfully and sent to the customer.
             </p>
             
             {/* Payment Details */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Amount Paid:</span>
-                <span className="font-semibold">₹{paymentDetails.inrAmount}</span>
+                <span className="text-black">Amount Paid:</span>
+                <span className="font-semibold text-black">₹{paymentDetails.inrAmount}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Crypto Amount:</span>
-                <span className="font-semibold">{paymentDetails.cryptoAmount} {paymentDetails.currency}</span>
+                <span className="text-black">Crypto Amount:</span>
+                <span className="font-semibold text-black">{paymentDetails.cryptoAmount} {paymentDetails.currency}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Method:</span>
-                <span className="font-semibold">{paymentDetails.currency}</span>
+                <span className="text-black">Method:</span>
+                <span className="font-semibold text-black">{paymentDetails.currency}</span>
               </div>
               <div className="border-t pt-2">
-                <p className="text-xs text-gray-500 mb-1">Transaction Hash:</p>
-                <p className="font-mono text-xs text-gray-800 break-all">{paymentDetails.transactionHash}</p>
+                <p className="text-xs text-black mb-1">Transaction Hash:</p>
+                <p className="font-mono text-xs text-black break-all">{paymentDetails.transactionHash}</p>
               </div>
             </div>
 
@@ -350,7 +389,7 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
           <label className="block text-sm font-medium text-gray-800 mb-3">
             Select Payment Method
           </label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {currencies.map((currency) => (
               <button
                 key={currency.id}
@@ -383,6 +422,8 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
             </div>
           </div>
         </div>
+
+
 
         {/* Order Details */}
         <div className="bg-gray-100 rounded-lg p-4 mb-6">
@@ -434,16 +475,18 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
               </span>
             )}
           </label>
-          <textarea
-            value={vendorAddress}
-            onChange={(e) => setVendorAddress(e.target.value)}
-            placeholder="Enter your wallet address"
-            rows={3}
-            disabled={isProcessing}
-            className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-[#8BC34A] focus:border-transparent font-mono text-sm resize-none text-gray-900 placeholder:text-gray-500 placeholder:font-normal disabled:opacity-50 ${
-              errors.vendorAddress ? 'border-red-300' : 'border-gray-300'
-            }`}
-          />
+          <div className="flex gap-2">
+            <textarea
+              value={vendorAddress}
+              onChange={(e) => setVendorAddress(e.target.value)}
+              placeholder="Enter your wallet address"
+              rows={3}
+              disabled={isProcessing}
+              className={`flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-[#8BC34A] focus:border-transparent font-mono text-sm resize-none text-gray-900 placeholder:text-gray-500 placeholder:font-normal disabled:opacity-50 ${
+                errors.vendorAddress ? 'border-red-300' : 'border-gray-300'
+              }`}
+            />
+          </div>
           {errors.vendorAddress && (
             <p className="text-red-600 text-xs mt-1">{errors.vendorAddress}</p>
           )}
@@ -499,7 +542,7 @@ const PaymentModal = ({ isOpen, onClose, order, vendorWalletAddress }) => {
         {(!order.userWalletAddress || !vendorAddress.trim()) && (
           <p className="text-center text-xs text-red-600 mt-2">
             {!order.userWalletAddress && 'Customer wallet address required. '}
-            {!vendorAddress.trim() && 'Your wallet address required.'}
+            {!vendorAddress.trim() && 'Your wallet address required. '}
           </p>
         )}
       </div>

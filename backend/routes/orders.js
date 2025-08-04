@@ -429,7 +429,7 @@ router.put('/:orderId/cancel', async (req, res) => {
 });
 
 // @route   GET /api/orders/:id
-// @desc    Get single order
+// @desc    Get single order with latest user wallet
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
@@ -442,9 +442,18 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    // Fetch latest user data to get current wallet address
+    const user = await User.findOne({ clerkId: order.userId, role: 'user' });
+    
+    // Update order with latest wallet address if user exists
+    const orderData = order.toObject();
+    if (user && user.walletAddress) {
+      orderData.userWalletAddress = user.walletAddress;
+    }
+
     res.json({
       success: true,
-      data: order
+      data: orderData
     });
   } catch (error) {
     console.error('Get order error:', error);
