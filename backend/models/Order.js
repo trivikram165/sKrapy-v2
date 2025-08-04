@@ -37,8 +37,20 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'in_progress', 'payment_pending', 'completed', 'cancelled'],
+    enum: ['pending', 'accepted', 'in_progress', 'payment_pending', 'completed', 'cancelled', 'cancelled_by_user'],
     default: 'pending'
+  },
+  cancelledBy: {
+    type: String,
+    default: null // 'user' or 'vendor'
+  },
+  cancelledAt: {
+    type: Date,
+    default: null
+  },
+  cancellationReason: {
+    type: String,
+    default: null
   },
   rejectedVendors: [{
     vendorId: {
@@ -49,6 +61,9 @@ const orderSchema = new mongoose.Schema({
       type: Date,
       required: true
     }
+  }],
+  hiddenFromVendors: [{
+    type: String // Vendor IDs who have rejected this order (pre-acceptance)
   }],
   acceptedAt: {
     type: Date,
@@ -89,21 +104,40 @@ orderSchema.methods.canVendorAccept = function(vendorId) {
   return { canAccept: false, remainingTime: remainingTimeSeconds };
 };
 
-// Method to add vendor to rejected list
+// Method to add vendor to rejected list (post-acceptance cancellation)
 orderSchema.methods.rejectByVendor = function(vendorId) {
   // Remove existing rejection if any (to update timestamp)
   this.rejectedVendors = this.rejectedVendors.filter(r => r.vendorId !== vendorId);
   
-  // Add new rejection
+  // Add new rejection with cooldown
   this.rejectedVendors.push({
     vendorId: vendorId,
     rejectedAt: new Date()
   });
   
-  // Reset vendor assignment and status
+  // Reset vendor assignment and status to make order available again
   this.vendorId = null;
   this.status = 'pending';
   this.acceptedAt = null;
+  // Note: Order stays visible to all vendors, but this vendor has cooldown
+};
+
+// Method to hide order from vendor (pre-acceptance rejection)
+orderSchema.methods.hideFromVendor = function(vendorId) {
+  // Add vendor to hidden list if not already there
+  if (!this.hiddenFromVendors.includes(vendorId)) {
+    this.hiddenFromVendors.push(vendorId);
+  }
+};
+
+// Method to cancel order by user
+orderSchema.methods.cancelByUser = function(reason = null) {
+  this.status = 'cancelled_by_user';
+  this.cancelledBy = 'user';
+  this.cancelledAt = new Date();
+  if (reason) {
+    this.cancellationReason = reason;
+  }
 };
 
 // Index for efficient queries

@@ -124,20 +124,32 @@ router.get('/vendor/:vendorId', async (req, res) => {
 router.get('/available/:pincode/:vendorId', async (req, res) => {
   try {
     const { pincode, vendorId } = req.params;
-    const orders = await Order.find({ 
+    
+    // Get pending orders
+    const pendingOrders = await Order.find({ 
       'userAddress.pincode': pincode,
       status: 'pending',
-      vendorId: null
+      vendorId: null,
+      hiddenFromVendors: { $ne: vendorId }
     }).sort({ createdAt: -1 });
+
+    // Get cancelled_by_user orders in this vendor's area
+    const cancelledOrders = await Order.find({
+      'userAddress.pincode': pincode,
+      status: 'cancelled_by_user'
+    }).sort({ createdAt: -1 });
+
+    // Combine orders
+    const allOrders = [...pendingOrders, ...cancelledOrders];
 
     // Get user details for each order and add cooldown info
     const ordersWithUserData = await Promise.all(
-      orders.map(async (order) => {
+      allOrders.map(async (order) => {
         const user = await User.findOne({ clerkId: order.userId, role: 'user' });
         const userName = user ? `${user.firstName} ${user.lastName}`.trim() || user.username : `User ${order.userId.slice(-4)}`;
         
-        // Check cooldown status for this vendor
-        const cooldownCheck = order.canVendorAccept(vendorId);
+        // Check cooldown status for this vendor (only for pending orders)
+        const cooldownCheck = order.status === 'pending' ? order.canVendorAccept(vendorId) : { canAccept: false, remainingTime: 0 };
         
         return {
           ...order.toObject(),
@@ -360,6 +372,57 @@ router.put('/:orderId/reject', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to reject order',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/orders/:orderId/cancel
+// @desc    Cancel an order (user)
+// @access  Public
+router.put('/:orderId/cancel', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { userId, reason } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Only allow cancellation by the user who placed the order
+    if (order.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only cancel your own orders'
+      });
+    }
+
+    // Don't allow cancellation if already completed or cancelled
+    if (order.status === 'completed' || order.status === 'cancelled' || order.status === 'cancelled_by_user') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel order that is already completed or cancelled'
+      });
+    }
+
+    // Cancel the order
+    order.cancelByUser(reason);
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Order cancelled successfully',
+      data: order
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cancel order',
       error: error.message
     });
   }

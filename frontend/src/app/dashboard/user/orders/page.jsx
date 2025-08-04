@@ -17,7 +17,7 @@ const UserOrders = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/user/${user.id}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/user/${user.id}`);
         const data = await response.json();
 
         if (data.success) {
@@ -65,6 +65,8 @@ const UserOrders = () => {
         return 'Completed';
       case 'cancelled':
         return 'Cancelled';
+      case 'cancelled_by_user':
+        return 'Cancelled';
       default:
         return status;
     }
@@ -81,6 +83,8 @@ const UserOrders = () => {
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'cancelled_by_user':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -99,6 +103,49 @@ const UserOrders = () => {
 
   const handleWalletClick = () => {
     setIsWalletModalOpen(true);
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${orderId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          reason: 'Cancelled by user'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Refresh orders list
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId 
+              ? { ...order, status: 'cancelled_by_user', cancelledAt: new Date() }
+              : order
+          )
+        );
+        alert('Order cancelled successfully.');
+      } else {
+        alert(data.message || 'Failed to cancel order');
+      }
+    } catch (error) {
+      console.error('Cancel order error:', error);
+      alert('Something went wrong. Please try again.');
+    }
+  };
+
+  const canCancelOrder = (order) => {
+    // User can cancel until payment is pending (before payment is made)
+    return ['pending', 'accepted', 'in_progress'].includes(order.status);
   };
 
   if (loading) {
@@ -189,6 +236,14 @@ const UserOrders = () => {
                     <div className="text-gray-600 text-sm">
                       {order.totalItems} items
                     </div>
+                    {canCancelOrder(order) && (
+                      <button
+                        onClick={() => handleCancelOrder(order._id)}
+                        className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                      >
+                        Cancel Order
+                      </button>
+                    )}
                   </div>
                 </div>
 

@@ -30,10 +30,26 @@ const OnboardingForm = () => {
       let role = roleFromUrl || user.publicMetadata?.role || user.unsafeMetadata?.role;
       
       if (!role) {
+        // Check localStorage for role preferences
+        const selectedRole = localStorage.getItem('selectedRole');
+        const storedRole = localStorage.getItem('userRole');
         const lastDashboard = localStorage.getItem('lastDashboard');
-        if (lastDashboard?.includes('vendor')) {
-          role = 'vendor';
-        } else {
+        
+        console.log('OnboardingForm: Checking localStorage for role:', { selectedRole, storedRole, lastDashboard });
+        
+        // Priority: selectedRole > storedRole > lastDashboard path analysis
+        role = selectedRole || storedRole;
+        
+        if (!role && lastDashboard) {
+          if (lastDashboard.includes('vendor')) {
+            role = 'vendor';
+          } else {
+            role = 'user';
+          }
+        }
+        
+        // If still no role, default to user
+        if (!role) {
           role = 'user';
         }
       }

@@ -17,15 +17,15 @@ router.post('/complete-profile', async (req, res) => {
 
     // Validate vendor-specific fields
     if (role === 'vendor') {
-      if (!businessName || !gstin) {
+      if (!businessName) {
         return res.status(400).json({
           success: false,
-          message: 'Business name and GSTIN are required for vendors'
+          message: 'Business name is required for vendors'
         });
       }
 
-      // Validate GSTIN format (15 characters, alphanumeric)
-      if (!/^[0-9A-Z]{15}$/.test(gstin)) {
+      // Validate GSTIN format only if provided (15 characters, alphanumeric)
+      if (gstin && gstin.trim() && !/^[0-9A-Z]{15}$/.test(gstin)) {
         return res.status(400).json({
           success: false,
           message: 'GSTIN must be exactly 15 characters (letters and numbers only)'
@@ -55,7 +55,9 @@ router.post('/complete-profile', async (req, res) => {
     // Add vendor-specific fields if role is vendor
     if (role === 'vendor') {
       updateData.businessName = businessName;
-      updateData.gstin = gstin.toUpperCase(); // Ensure GSTIN is uppercase
+      if (gstin && gstin.trim()) {
+        updateData.gstin = gstin.toUpperCase(); // Ensure GSTIN is uppercase
+      }
     }
 
     // Find and update user for specific role
@@ -115,16 +117,17 @@ router.get('/check-profile/:clerkId/:role', async (req, res) => {
     let isProfileComplete = user.profileCompleted;
     
     if (role === 'vendor' && user.profileCompleted) {
-      // Double-check vendor-specific fields
+      // Double-check vendor-specific fields (only businessName is required, GSTIN is optional)
       const hasRequiredVendorFields = user.businessName && 
-                                     user.businessName.trim() !== '' && 
-                                     user.gstin && 
-                                     user.gstin.trim() !== '' &&
-                                     /^[0-9A-Z]{15}$/.test(user.gstin);
+                                     user.businessName.trim() !== '';
       
-      if (!hasRequiredVendorFields) {
+      // Validate GSTIN format if it's provided
+      const hasValidGstin = !user.gstin || 
+                           (user.gstin.trim() !== '' && /^[0-9A-Z]{15}$/.test(user.gstin));
+      
+      if (!hasRequiredVendorFields || !hasValidGstin) {
         isProfileComplete = false;
-        console.log('Vendor profile incomplete: missing business fields');
+        console.log('Vendor profile incomplete: missing business name or invalid GSTIN format');
       }
     }
 

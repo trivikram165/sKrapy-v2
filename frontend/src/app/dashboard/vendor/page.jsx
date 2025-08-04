@@ -33,7 +33,7 @@ const VendorDashboard = () => {
         console.log('VendorDashboard: User ID:', user.id);
         console.log('VendorDashboard: Checking vendor profile for:', user.id);
         
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/vendor`;
+        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`;
         console.log('VendorDashboard: Making request to:', apiUrl);
         
         const response = await fetch(apiUrl);
@@ -78,11 +78,11 @@ const VendorDashboard = () => {
   const checkWalletRecommendation = async () => {
     try {
       // Check wallet address
-      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/vendor`);
+      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/vendor`);
       const walletData = await walletResponse.json();
       
       // Check reminder dismissal status
-      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet-reminder/${user.id}/vendor`);
+      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet-reminder/${user.id}/vendor`);
       const reminderData = await reminderResponse.json();
       
       const hasWallet = walletData.success && walletData.data && walletData.data.walletAddress;

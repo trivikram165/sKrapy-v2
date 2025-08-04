@@ -17,7 +17,7 @@ const DashboardUser = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/user/${user.id}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/user/${user.id}`);
         const data = await response.json();
 
         if (data.success) {
@@ -44,11 +44,11 @@ const DashboardUser = () => {
   const checkWalletRecommendation = async () => {
     try {
       // Check wallet address
-      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/user`);
+      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/user`);
       const walletData = await walletResponse.json();
       
       // Check reminder dismissal status
-      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet-reminder/${user.id}/user`);
+      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet-reminder/${user.id}/user`);
       const reminderData = await reminderResponse.json();
       
       const hasWallet = walletData.success && walletData.data && walletData.data.walletAddress;
@@ -198,13 +198,15 @@ const DashboardUser = () => {
                           order.status === 'in_progress' ? 'bg-orange-100 text-orange-800' :
                           order.status === 'payment_pending' ? 'bg-purple-100 text-purple-800' :
                           order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          order.status === 'cancelled_by_user' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {order.status === 'pending' ? 'Pending' :
                            order.status === 'accepted' ? 'Accepted' :
                            order.status === 'in_progress' ? 'In Progress' :
                            order.status === 'payment_pending' ? 'Payment Pending' :
-                           order.status === 'completed' ? 'Completed' : order.status}
+                           order.status === 'completed' ? 'Completed' : 
+                           order.status === 'cancelled_by_user' ? 'Cancelled' : order.status}
                         </span>
                       </div>
                     </div>

@@ -246,13 +246,11 @@ const validateForm = () => {
       return false;
     }
     
-    if (!gstin.trim()) {
-      setError('GSTIN is required for vendors');
+    // GSTIN validation only if provided
+    if (gstin.trim() && !/^[0-9A-Z]{15}$/.test(gstin)) {
+      setError('GSTIN must be exactly 15 characters (letters and numbers only)');
       return false;
     }
-    
-    if (!/^[0-9A-Z]{15}$/.test(gstin)) {
-      setError('GSTIN must be exactly 15 characters (letters and numbers only)');
       return false;
     }
   }
@@ -744,8 +742,9 @@ const validateForm = () => {
     if (!formData.businessName.trim()) {
       newErrors.businessName = 'Business name is required for vendors';
     }
-    if (!formData.gstin.trim()) {
-      newErrors.gstin = 'GSTIN is required for vendors';
+    // GSTIN validation only if provided
+    if (formData.gstin.trim() && !/^[0-9A-Z]{15}$/.test(formData.gstin)) {
+      newErrors.gstin = 'GSTIN must be exactly 15 characters (letters and numbers only)';
     }
   }
 

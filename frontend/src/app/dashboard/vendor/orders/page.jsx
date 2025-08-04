@@ -16,7 +16,7 @@ const VendorOrders = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const tabs = ['All', 'Pending', 'Accepted', 'In Progress', 'Payment Pending', 'Completed'];
+  const tabs = ['All', 'Pending', 'Accepted', 'In Progress', 'Payment Pending', 'Completed', 'Cancelled by User'];
 
   // Countdown timer for cooldowns
   useEffect(() => {
@@ -44,7 +44,7 @@ const VendorOrders = () => {
       if (!user) return;
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/onboarding/check-profile/${user.id}/vendor`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/onboarding/check-profile/${user.id}/vendor`);
         const data = await response.json();
 
         if (data.success) {
@@ -64,11 +64,11 @@ const VendorOrders = () => {
 
       try {
         // Fetch available orders in vendor's pincode with cooldown info
-        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
+        const availableResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/available/${vendorProfile.address.pincode}/${user.id}`);
         const availableData = await availableResponse.json();
 
         // Fetch vendor's accepted orders
-        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/vendor/${user.id}`);
+        const myResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/vendor/${user.id}`);
         const myData = await myResponse.json();
 
         // Combine both arrays
@@ -88,12 +88,14 @@ const VendorOrders = () => {
             minute: '2-digit' 
           }),
           orderSummary: order.items.map(item => `${item.quantity}${item.unit} ${item.name}`),
-          status: order.vendorId ? 
+          status: order.status === 'cancelled_by_user' ? 'Cancelled by User' :
+            order.vendorId ? 
             (order.status === 'accepted' ? 'Accepted' : 
              order.status === 'in_progress' ? 'In Progress' : 
              order.status === 'payment_pending' ? 'Payment Pending' : 
              order.status === 'completed' ? 'Completed' : 'Accepted') : 'Pending',
-          action: order.vendorId ? 
+          action: order.status === 'cancelled_by_user' ? 'Cancelled' :
+            order.vendorId ? 
             (order.status === 'accepted' ? 'Start' : 
              order.status === 'in_progress' ? 'Pay' : 
              order.status === 'payment_pending' ? 'Awaiting Payment' : 
@@ -132,7 +134,7 @@ const VendorOrders = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/accept`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/accept`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -173,12 +175,12 @@ const VendorOrders = () => {
     const order = orders.find(o => o.orderNumber === orderNumber);
     if (!order) return;
 
-    if (!confirm('Are you sure you want to reject this order? You will have to wait 10 minutes before you can accept it again.')) {
+    if (!confirm('Are you sure you want to reject this order? It will be removed from your dashboard but will remain available to other vendors.')) {
       return;
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/reject`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/hide`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -191,13 +193,9 @@ const VendorOrders = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Update the order with cooldown info
-        setOrders(prev => prev.map(o => 
-          o.orderNumber === orderNumber 
-            ? { ...o, canAccept: false, remainingCooldown: 600 } // 10 minutes
-            : o
-        ));
-        alert('Order rejected. You can accept this order again in 10 minutes.');
+        // Remove the order from the current vendor's view
+        setOrders(prev => prev.filter(o => o.orderNumber !== orderNumber));
+        alert('Order rejected successfully. It has been removed from your dashboard.');
       } else {
         alert(data.message || 'Failed to reject order');
       }
@@ -212,7 +210,7 @@ const VendorOrders = () => {
     if (!order) return;
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/orders/${order.orderId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -254,20 +252,56 @@ const VendorOrders = () => {
     return `0:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const handleCancelOrder = (orderNumber) => {
-    // For now, just change status back to pending locally
-    setOrders(prev => prev.map(o => 
-      o.orderNumber === orderNumber 
-        ? { ...o, status: 'Pending', action: 'Accept', vendorId: null }
-        : o
-    ));
+  const handleCancelOrder = async (orderNumber) => {
+    const order = orders.find(o => o.orderNumber === orderNumber);
+    if (!order) return;
+
+    if (!confirm('Are you sure you want to cancel this order? You will have to wait 10 minutes before you can accept it again, but it will remain available to other vendors.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/orders/${order.orderId}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendorId: user.id
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update the order to show it's back to pending with cooldown for this vendor
+        setOrders(prev => prev.map(o => 
+          o.orderNumber === orderNumber 
+            ? { 
+                ...o, 
+                status: 'Pending', 
+                action: 'Accept', 
+                vendorId: null,
+                canAccept: false,
+                remainingCooldown: 600 // 10 minutes
+              }
+            : o
+        ));
+        alert('Order cancelled successfully. You can accept this order again in 10 minutes, but it remains available to other vendors.');
+      } else {
+        alert(data.message || 'Failed to cancel order');
+      }
+    } catch (error) {
+      console.error('Cancel order error:', error);
+      alert('Something went wrong. Please try again.');
+    }
   };
 
   const handlePayment = async (order) => {
     // Fetch vendor wallet address before opening payment modal
     let vendorWalletAddress = '';
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://skrapy-backend.onrender.com'}/api/users/wallet/${user.id}/vendor`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/wallet/${user.id}/vendor`);
       const data = await response.json();
       if (data.success && data.data && data.data.walletAddress) {
         vendorWalletAddress = data.data.walletAddress;
@@ -292,15 +326,18 @@ const VendorOrders = () => {
     Pay: 'bg-[#aadd66] w-full text-black hover:bg-[#9DCC5E] cursor-pointer transition duration-100 ease-in',
     'Awaiting Payment': 'bg-[#D9D9D9] w-full text-gray-600 cursor-default',
     Completed: 'bg-[#D9D9D9] w-full text-white cursor-default',
+    Cancelled: 'bg-red-100 w-full text-red-800 cursor-default',
   };
 
   const filteredOrders = orders.filter((order) => {
     if (active === "All") {
-      // Hide completed orders from "All" filter
-      return order.status !== "Completed";
+      // Hide completed and cancelled orders from "All" filter
+      return order.status !== "Completed" && order.status !== "Cancelled by User";
     } else if (active === "Payment Pending") {
       // Show both "Payment Pending" and "In Progress" orders in Payment Pending filter
       return order.status === "Payment Pending" || order.status === "In Progress";
+    } else if (active === "Cancelled by User") {
+      return order.status === "Cancelled by User";
     } else {
       return order.status === active;
     }
@@ -470,6 +507,7 @@ const VendorOrders = () => {
                           <button
                             onClick={() => handleCancelOrder(order.orderNumber)}
                             className='bg-gray-200 p-2 rounded-full hover:bg-red-600 cursor-pointer'
+                            title="Cancel this accepted order (you'll have 10min cooldown, but order stays available to others)"
                           >
                             <img
                               src='/icons/orders/x.png'
@@ -491,6 +529,7 @@ const VendorOrders = () => {
                               <button
                                 className='bg-red-500 px-3 py-1 rounded-2xl text-white hover:bg-red-600 cursor-pointer transition duration-100 ease-in'
                                 onClick={() => handleRejectOrder(order.orderNumber)}
+                                title="Remove this order from your dashboard (available to other vendors)"
                               >
                                 Reject
                               </button>
@@ -602,6 +641,7 @@ const VendorOrders = () => {
                       <button
                         onClick={() => handleCancelOrder(order.orderNumber)}
                         className='bg-gray-200 p-2 rounded-lg hover:bg-red-600 transition-colors'
+                        title="Cancel this accepted order (you'll have 10min cooldown, but order stays available to others)"
                       >
                         <img
                           src='/icons/orders/x.png'
@@ -623,6 +663,7 @@ const VendorOrders = () => {
                           <button
                             className='bg-red-500 px-4 py-2 rounded-lg text-sm font-medium text-white hover:bg-red-600 transition-colors'
                             onClick={() => handleRejectOrder(order.orderNumber)}
+                            title="Remove this order from your dashboard (available to other vendors)"
                           >
                             Reject
                           </button>
