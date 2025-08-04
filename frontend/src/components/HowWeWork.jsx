@@ -319,7 +319,7 @@ const HowSKrapyWorks = () => {
   }
 
   return (
-    <div className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
+    <div id="services" className='min-h-screen bg-[#FCF9F2] py-16 px-4'>
       <div className='max-w-6xl mx-auto'>
         <Header />
         <Timeline />
