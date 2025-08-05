@@ -9,4 +9,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
-        value: https://skrapy-gamma.vercel.app
+        value: https://justskrapy.vercel.app
