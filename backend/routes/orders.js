@@ -233,16 +233,25 @@ router.put('/:orderId/accept', async (req, res) => {
     }
 
     // Validate vendor-specific fields
-    const hasRequiredVendorFields = vendor.businessName && 
-                                   vendor.businessName.trim() !== '' && 
-                                   vendor.gstin && 
-                                   vendor.gstin.trim() !== '' &&
-                                   /^[0-9A-Z]{15}$/.test(vendor.gstin);
+    console.log('Vendor validation - businessName:', vendor.businessName);
+    console.log('Vendor validation - gstin:', vendor.gstin);
+    console.log('Vendor validation - profileCompleted:', vendor.profileCompleted);
+    
+    const hasBusinessName = vendor.businessName && vendor.businessName.trim() !== '';
 
-    if (!hasRequiredVendorFields) {
+    // If GSTIN is provided, validate its format
+    if (vendor.gstin && vendor.gstin.trim() !== '' && !/^[0-9A-Z]{15}$/.test(vendor.gstin)) {
       return res.status(400).json({
         success: false,
-        message: 'Please complete your business information (business name and GSTIN) first',
+        message: 'Invalid GSTIN format. GSTIN must be exactly 15 alphanumeric characters.',
+        redirectTo: '/onboarding?role=vendor'
+      });
+    }
+
+    if (!hasBusinessName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please complete your business information (business name is required) first',
         redirectTo: '/onboarding?role=vendor'
       });
     }
@@ -369,6 +378,49 @@ router.put('/:orderId/reject', async (req, res) => {
     });
   } catch (error) {
     console.error('Reject order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reject order',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/orders/:orderId/hide
+// @desc    Hide an order from vendor (pre-acceptance rejection)
+// @access  Public
+router.put('/:orderId/hide', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { vendorId } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Only allow hiding of pending orders
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'You can only reject pending orders'
+      });
+    }
+
+    // Hide order from this vendor
+    order.hideFromVendor(vendorId);
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Order rejected successfully. It has been removed from your dashboard.',
+      data: order
+    });
+  } catch (error) {
+    console.error('Hide order error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to reject order',
